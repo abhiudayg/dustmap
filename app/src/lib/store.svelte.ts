@@ -32,6 +32,9 @@ export const appState = $state({
   showPermissionDialog: false,
   showSplash: true,
   volumeCache: {} as Record<string, CachedVolumeScan>,
+  searchQuery: '',
+  activeFilter: 'all' as 'all' | 'cache' | 'apps',
+  viewMode: 'donut' as 'donut' | 'treemap',
 });
 
 export function getEntrySize(entry: IpcEntry): number {

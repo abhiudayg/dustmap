@@ -210,7 +210,7 @@
   .corner-tag {
     position: absolute;
     top: 8px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.5rem;
     letter-spacing: 0.08em;
     pointer-events: none;
@@ -273,14 +273,14 @@
     75%, 100% { transform: scale(2); opacity: 0; }
   }
   .header-title {
-    font-family: Inter, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     font-size: 1.125rem;
     font-weight: 700;
     color: #F0F6FC;
     margin: 0;
   }
   .header-subtitle {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     color: #8B949E;
     margin-top: 2px;
@@ -295,7 +295,7 @@
     border-radius: 6px;
     padding: 3px 8px;
     cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     transition: all 0.15s;
   }
@@ -318,7 +318,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.625rem;
   }
   .target-label {
@@ -353,7 +353,7 @@
     flex-shrink: 0;
   }
   .path-text {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
     font-weight: 600;
     color: #FFB690;
@@ -362,7 +362,7 @@
   .target-meta {
     display: flex;
     justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     color: #8B949E;
     padding-top: 2px;
@@ -384,21 +384,21 @@
     justify-content: center;
   }
   .metric-label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     text-transform: uppercase;
     font-weight: 600;
     color: #FFB690;
   }
   .metric-value {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 1.5rem;
     font-weight: 700;
     color: #F97316;
     margin-top: 2px;
   }
   .reclaim-tag {
-    font-family: Inter, sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.6875rem;
     color: #14B8A6;
     margin-top: 4px;
@@ -416,7 +416,7 @@
     border: 1px solid rgba(88, 66, 55, 0.25);
     padding: 0.35rem 0.625rem;
     border-radius: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
   }
   .chip-label {
@@ -463,13 +463,13 @@
     gap: 2px;
   }
   .callout-title {
-    font-family: Inter, sans-serif;
+    font-family: var(--font-sans);
     font-weight: 700;
     font-size: 0.75rem;
     color: #EF4444;
   }
   .callout-desc {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     color: #F87171;
     line-height: 1.4;
@@ -481,7 +481,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-family: Inter, sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.75rem;
     color: #F0F6FC;
     cursor: pointer;
@@ -504,7 +504,7 @@
     color: #4FDCB8;
     padding: 0.625rem 1rem;
     border-radius: 10px;
-    font-family: Inter, sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 0.8125rem;
     display: flex;
@@ -524,7 +524,7 @@
     cursor: default;
   }
   .safer-tag {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.5625rem;
     background: rgba(20, 184, 166, 0.25);
     color: #71F8E4;
@@ -538,7 +538,7 @@
     color: white;
     padding: 0.625rem 1rem;
     border-radius: 10px;
-    font-family: Inter, sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 0.8125rem;
     display: flex;
@@ -568,7 +568,7 @@
     background: none;
     border: none;
     color: #8B949E;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     cursor: pointer;
     display: flex;

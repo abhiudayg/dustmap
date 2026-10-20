@@ -69,7 +69,7 @@
     cursor: pointer;
     padding: 0.15rem 0.35rem;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     transition: all 0.12s;
   }
   .crumb:hover {
@@ -85,7 +85,7 @@
     background: none;
   }
   .mapped-size {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.75rem;
     font-weight: 600;
     color: #4FDCB8;
@@ -96,7 +96,7 @@
     gap: 0.375rem;
   }
   .badge {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     padding: 0.125rem 0.375rem;
     border-radius: 4px;

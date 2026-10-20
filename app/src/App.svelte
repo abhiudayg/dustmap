@@ -4,7 +4,6 @@
   import VolumeBar from './components/VolumeBar.svelte';
   import Treemap from './components/Treemap.svelte';
   import TopFolderList from './components/TopFolderList.svelte';
-  import Breadcrumb from './components/Breadcrumb.svelte';
   import DeleteModal from './components/DeleteModal.svelte';
   import ScanProgress from './components/ScanProgress.svelte';
   import StatusBar from './components/StatusBar.svelte';
@@ -26,9 +25,8 @@
   {#if appState.isScanning}
     <ScanProgress />
   {:else}
-    <Breadcrumb />
     <div class="workspace-grid">
-      <div class="treemap-pane">
+      <div class="vis-pane">
         <Treemap />
       </div>
       <div class="list-pane">
@@ -53,11 +51,11 @@
   }
   .workspace-grid {
     display: grid;
-    grid-template-columns: 65% 35%;
+    grid-template-columns: 60% 40%;
     flex: 1;
     overflow: hidden;
   }
-  .treemap-pane {
+  .vis-pane {
     height: 100%;
     overflow: hidden;
     position: relative;

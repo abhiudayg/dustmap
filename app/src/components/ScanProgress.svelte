@@ -156,7 +156,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
   }
   .pulse-status {
@@ -191,7 +191,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     color: #8B949E;
   }
@@ -221,7 +221,7 @@
   .hud-foot {
     display: flex;
     justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     color: #484F58;
   }

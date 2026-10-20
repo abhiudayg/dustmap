@@ -2,116 +2,187 @@
   import { appState, toggleMetric, toggleUnits } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
 
-  const accountedBytes = $derived(
-    appState.summary
-      ? (appState.metric === 'allocated' ? appState.summary.total_allocated : appState.summary.total_logical)
-      : 0
-  );
+  const vol = $derived(appState.currentVolume);
+  const summary = $derived(appState.summary);
+  const isScanning = $derived(appState.isScanning);
+  const errorCount = $derived(summary?.error_count ?? 0);
+
+  // Approximate purgeable cache size from current items
+  const purgeableBytes = $derived.by(() => {
+    return appState.currentChildren
+      .filter(e => {
+        const n = e.name.toLowerCase();
+        return n.includes('cache') || n.includes('tmp') || n.includes('deriveddata');
+      })
+      .reduce((sum, e) => sum + (e.total_allocated ?? e.allocated_bytes ?? e.total_logical ?? e.logical_bytes ?? 0), 0);
+  });
 </script>
 
-<footer class="status-footer">
-  <!-- Left Telemetry Cluster -->
-  <div class="status-left">
-    <span class="pulse-status-dot"></span>
-    {#if appState.summary}
-      <span class="telemetry-text">
-        INDEXED: {appState.summary.total_items.toLocaleString()} ITEMS | {formatBytes(accountedBytes, appState.useBinaryUnits)} {appState.metric === 'allocated' ? 'ALLOCATED' : 'LOGICAL'} | {appState.summary.duration_secs.toFixed(1)}S
+<!-- Stitch Pinned Bottom Status Bar (26px single line) -->
+<footer class="stitch-footer font-mono">
+  <!-- Left Side: Status beacon + Indexed Telemetry -->
+  <div class="footer-left">
+    <div class="status-indicator">
+      <span class="beacon-pulse" class:scanning={isScanning}></span>
+      <span class="status-state-text" class:scanning={isScanning}>
+        {isScanning ? 'Telemetry Active…' : (summary ? 'Telemetry Idle' : 'System Ready')}
       </span>
-    {:else if appState.isScanning}
-      <span class="telemetry-text scanning">
-        SCANNING INODE NODES | PARALLEL ENGINE ACTIVE…
+    </div>
+
+    <span class="pipe-sep">|</span>
+
+    <span class="telemetry-item">
+      INDEXED: {summary ? summary.total_items.toLocaleString() : '0'} ITEMS
+    </span>
+
+    {#if summary}
+      <span class="pipe-sep">|</span>
+      <span class="telemetry-item">
+        DURATION: {summary.duration_secs.toFixed(1)}S
       </span>
-    {:else}
-      <span class="telemetry-text ready">
-        SYSTEM READY | SELECT OR SCAN MOUNTED VOLUME
+
+      <span class="pipe-sep">|</span>
+      <span class="telemetry-item">
+        MOUNT: {vol?.mount_point || '/'}
       </span>
     {/if}
   </div>
 
-  <!-- Right Metadata & Privacy Warnings Cluster -->
-  <div class="status-right">
-    {#if appState.summary && appState.summary.error_count > 0}
+  <!-- Right Side: Filesystem + Purgeable Pill + Warning + Metric Toggle -->
+  <div class="footer-right">
+    <span class="fs-label">{vol?.fs_type || 'APFS'} (Encrypted)</span>
+
+    {#if purgeableBytes > 0}
+      <span class="dot-sep">•</span>
+      <span class="purgeable-pill">
+        {formatBytes(purgeableBytes, appState.useBinaryUnits)} Purgeable
+      </span>
+    {/if}
+
+    {#if errorCount > 0}
+      <span class="dot-sep">•</span>
       <button
-        class="perm-warning-btn"
-        onclick={() => (appState.showPermissionDialog = true)}
-        title="macOS Full Disk Access (TCC) Privacy Controls"
+        class="perm-badge-btn"
+        onclick={() => appState.showPermissionDialog = true}
+        title="Click to view macOS Full Disk Access guide"
       >
-        ⚠️ {appState.summary.error_count.toLocaleString()} PERMISSION WARNINGS
+        ⚠️ {errorCount.toLocaleString()} FDA Warnings
       </button>
     {/if}
 
+    <span class="dot-sep">•</span>
     <button
-      class="meta-toggle-btn"
-      class:active={appState.metric === 'allocated'}
+      class="quick-toggle-btn"
       onclick={toggleMetric}
-      title="Toggle Physical Storage (Allocated) vs Virtual Size (Logical)"
+      title="Toggle allocated physical disk blocks vs logical size"
     >
-      METRIC: <strong>{appState.metric === 'allocated' ? 'ALLOC' : 'RAW'}</strong>
+      Metric: {appState.metric === 'allocated' ? 'Allocated' : 'Logical'}
     </button>
 
     <button
-      class="meta-toggle-btn"
+      class="quick-toggle-btn"
       onclick={toggleUnits}
-      title="Toggle Decimal 1000 base vs Binary 1024 base"
+      title="Toggle decimal (1000) vs binary (1024) byte units"
     >
-      UNITS: <strong>{appState.useBinaryUnits ? 'GiB' : 'GB'}</strong>
+      {appState.useBinaryUnits ? 'GiB (1024)' : 'GB (1000)'}
     </button>
-
-    <span class="fs-tag">
-      {appState.currentVolume?.fs_type || 'APFS'} (Encrypted)
-    </span>
   </div>
 </footer>
 
 <style>
-  .status-footer {
+  .stitch-footer {
     height: 26px;
     min-height: 26px;
     background: #0B0E14;
-    border-top: 1px solid rgba(88, 66, 55, 0.25);
+    border-top: 1px solid rgba(88, 66, 55, 0.3);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 12px;
-    font-family: 'JetBrains Mono', monospace;
     font-size: 0.625rem;
     color: #8B949E;
     user-select: none;
     z-index: 40;
+    white-space: nowrap;
+    overflow: hidden;
   }
-  .status-left {
+
+  .footer-left {
     display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
+    overflow: hidden;
   }
-  .pulse-status-dot {
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .beacon-pulse {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #4FDCB8;
-    box-shadow: 0 0 6px rgba(79, 220, 184, 0.5);
+    background: #10B981;
+    box-shadow: 0 0 6px #10B981;
     flex-shrink: 0;
+    animation: beacon 2s infinite ease-in-out;
   }
-  .telemetry-text {
+  .beacon-pulse.scanning {
+    background: #F97316;
+    box-shadow: 0 0 8px #F97316;
+    animation: beacon 0.8s infinite ease-in-out;
+  }
+  @keyframes beacon {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.2); }
+  }
+
+  .status-state-text {
+    color: #F0F6FC;
+    font-weight: 500;
+  }
+  .status-state-text.scanning {
+    color: #F97316;
+  }
+
+  .pipe-sep {
+    color: rgba(139, 148, 158, 0.3);
+    margin: 0 2px;
+  }
+
+  .telemetry-item {
     color: #8B949E;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .telemetry-text.scanning {
-    color: #F97316;
-  }
-  .telemetry-text.ready {
-    color: #4FDCB8;
-  }
-  .status-right {
+
+  .footer-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
   }
-  .perm-warning-btn {
+
+  .fs-label {
+    color: #8B949E;
+  }
+
+  .dot-sep {
+    color: rgba(139, 148, 158, 0.4);
+  }
+
+  .purgeable-pill {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(20, 184, 166, 0.15);
+    color: #14B8A6;
+    border: 1px solid rgba(20, 184, 166, 0.35);
+    font-weight: 600;
+  }
+
+  .perm-badge-btn {
     background: rgba(245, 158, 11, 0.12);
     border: 1px solid rgba(245, 158, 11, 0.35);
     color: #F59E0B;
@@ -119,39 +190,27 @@
     padding: 1px 6px;
     font-family: inherit;
     font-size: 0.5625rem;
-    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.12s;
   }
-  .perm-warning-btn:hover {
+  .perm-badge-btn:hover {
     background: rgba(245, 158, 11, 0.25);
     color: #FBBF24;
   }
-  .meta-toggle-btn {
-    background: #161B22;
-    border: 1px solid #272A31;
+
+  .quick-toggle-btn {
+    background: #191C22;
+    border: 1px solid rgba(88, 66, 55, 0.35);
     color: #8B949E;
     border-radius: 4px;
-    padding: 1px 5px;
+    padding: 1px 6px;
     font-family: inherit;
     font-size: 0.5625rem;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: all 0.12s;
   }
-  .meta-toggle-btn:hover {
+  .quick-toggle-btn:hover {
     color: #F0F6FC;
-    border-color: #3D4450;
-  }
-  .meta-toggle-btn.active {
-    color: #14B8A6;
-    border-color: rgba(20, 184, 166, 0.4);
-    background: rgba(20, 184, 166, 0.08);
-  }
-  .meta-toggle-btn strong {
-    font-weight: 700;
-  }
-  .fs-tag {
-    color: #484F58;
-    font-size: 0.5625rem;
+    border-color: #14B8A6;
   }
 </style>

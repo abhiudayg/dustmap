@@ -1,320 +1,531 @@
 <script lang="ts">
   import { appState, navigateTo, setDeleteTarget, getEntrySize } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
+  import type { IpcEntry } from '../lib/types';
 
-  const sorted = $derived(
-    [...appState.currentChildren]
-      .sort((a, b) => getEntrySize(b) - getEntrySize(a))
-      .slice(0, 30)
-  );
+  let sortAsc = $state(false);
 
-  const maxSize = $derived(
-    sorted.length > 0 ? getEntrySize(sorted[0]) || 1 : 1
-  );
+  // Compute category icon, color, and badge for any filesystem entry
+  function getCategoryMeta(entry: IpcEntry) {
+    const name = entry.name.toLowerCase();
+    const isDir = entry.kind === 'Directory';
+
+    if (entry.isHidden) {
+      return { icon: 'visibility_off', color: '#8B949E', badge: 'HIDDEN' };
+    }
+    if (name.includes('cache') || name === '.cache' || name.includes('deriveddata')) {
+      return { icon: 'local_fire_department', color: '#F43F5E', badge: 'PURGEABLE' };
+    }
+    if (name === 'system' || name === 'private' || name === 'bin' || name === 'sbin' || name.startsWith('root')) {
+      return { icon: 'lock', color: '#8B949E', badge: 'SYSTEM' };
+    }
+    if (name === '.docker' || name === 'docker' || name.includes('container')) {
+      return { icon: 'deployed_code', color: '#14B8A6', badge: 'CONTAINER' };
+    }
+    if (name.endsWith('.app') || name === 'applications') {
+      return { icon: 'apps', color: '#F97316', badge: 'APPLICATION' };
+    }
+    if (name.includes('coresimulator') || name.includes('developer') || name === 'xcode') {
+      return { icon: 'devices', color: '#F59E0B', badge: 'DEVELOPER' };
+    }
+    if (name === 'downloads') {
+      return { icon: 'download', color: '#14B8A6', badge: 'DOWNLOADS' };
+    }
+    if (name === 'library') {
+      return { icon: 'folder_special', color: '#8B5CF6', badge: 'LIBRARY' };
+    }
+    if (name === 'users') {
+      return { icon: 'group', color: '#14B8A6', badge: 'USERS' };
+    }
+    if (name.includes('log')) {
+      return { icon: 'list_alt', color: '#8B949E', badge: 'LOGS' };
+    }
+    return { icon: isDir ? 'folder' : 'draft', color: '#14B8A6', badge: isDir ? 'FOLDER' : 'FILE' };
+  }
+
+  // Filter and sort items
+  const sorted = $derived.by(() => {
+    let list = [...appState.currentChildren];
+
+    if (appState.searchQuery.trim()) {
+      const q = appState.searchQuery.toLowerCase();
+      list = list.filter(e => e.name.toLowerCase().includes(q) || (e.path && e.path.toLowerCase().includes(q)));
+    }
+
+    if (appState.activeFilter === 'cache') {
+      list = list.filter(e => {
+        const n = e.name.toLowerCase();
+        return n.includes('cache') || n.includes('tmp') || n.includes('deriveddata') || n.includes('log');
+      });
+    } else if (appState.activeFilter === 'apps') {
+      list = list.filter(e => e.name.toLowerCase().endsWith('.app') || e.name === 'Applications');
+    }
+
+    list.sort((a, b) => {
+      const sa = getEntrySize(a);
+      const sb = getEntrySize(b);
+      return sortAsc ? sa - sb : sb - sa;
+    });
+
+    return list.slice(0, 30);
+  });
+
+  const maxSize = $derived.by(() => {
+    return sorted[0] ? getEntrySize(sorted[0]) : 1;
+  });
+
+  function getEntryFullPath(entry: IpcEntry): string {
+    if (entry.path) return entry.path;
+    const root = appState.summary?.root ?? '/';
+    return root === '/' ? `/${entry.name}` : `${root}/${entry.name}`;
+  }
 </script>
 
-<div class="top-consumers-panel">
-  <!-- Right Pane Header Toolbar matching Stitch -->
+<!-- Stitch Right Panel (40%): Top Space Consumers Inspector -->
+<aside class="consumers-panel">
+  <!-- Panel Header -->
   <div class="panel-header">
-    <div class="title-cluster">
-      <span class="header-icon">📊</span>
-      <h2 class="panel-title">Top Consumers</h2>
-      <span class="count-chip">{appState.currentChildren.length} items</span>
+    <div class="header-left">
+      <span class="panel-title">Top Space Consumers</span>
+      <span class="items-count-badge font-mono">
+        {sorted.length} {sorted.length === 1 ? 'item' : 'items'}
+      </span>
     </div>
-    <div class="sort-action">
-      <span class="sort-badge">Size: Desc ↓</span>
-    </div>
-  </div>
 
-  <!-- High-Density Telemetry Table Header -->
-  <div class="table-header">
-    <div class="col-rank">#</div>
-    <div class="col-node">Path / Node</div>
-    <div class="col-size">Size</div>
-    <div class="col-actions">Actions</div>
-  </div>
-
-  <!-- Ranked Scrollable List Container -->
-  <div class="table-body">
-    {#each sorted as entry, i}
-      {@const size = getEntrySize(entry)}
-      {@const pct = Math.max(2, Math.round((size / maxSize) * 100))}
-      <div
-        class="table-row"
-        class:is-active={i === 0}
-        role="button"
-        tabindex="0"
-        onclick={() => navigateTo(entry)}
-        onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && navigateTo(entry)}
+    <!-- Sort Action Dropdown -->
+    <div class="header-right">
+      <button
+        class="sort-dropdown-btn font-mono"
+        onclick={() => sortAsc = !sortAsc}
+        title="Toggle sort direction"
       >
-        <!-- Rank Number -->
-        <div class="col-rank rank-num">{String(i + 1).padStart(2, '0')}</div>
+        <span class="material-symbols-outlined icon-sort">sort</span>
+        <span>Size: {sortAsc ? 'Ascending' : 'Descending'}</span>
+        <span class="material-symbols-outlined icon-chevron">
+          {sortAsc ? 'arrow_drop_up' : 'arrow_drop_down'}
+        </span>
+      </button>
+    </div>
+  </div>
 
-        <!-- Node & Gauge -->
-        <div class="col-node node-cell">
-          <div class="node-meta">
-            <span class="node-dot" class:orange={size > 10_000_000_000} class:teal={size <= 10_000_000_000}></span>
-            <span class="node-icon">{entry.kind === 'Directory' ? (entry.is_hidden ? '🔒' : '📁') : '📄'}</span>
-            <span class="node-name" class:hidden-node={entry.is_hidden}>{entry.name}</span>
-            {#if entry.child_count !== undefined && entry.kind === 'Directory'}
-              <span class="child-tag">{entry.child_count}</span>
+  <!-- High-Density High-Precision Table Header (24px) -->
+  <div class="table-header font-mono">
+    <div class="col-name">PATH / ITEM</div>
+    <div class="col-size">SIZE</div>
+    <div class="col-actions">ACTION</div>
+  </div>
+
+  <!-- Scrollable High-Density Table View (Rows matching Stitch Screen 1) -->
+  <div class="table-body">
+    {#if sorted.length === 0}
+      <div class="empty-list font-mono">
+        {#if appState.isScanning}
+          <span>Indexing directory entries…</span>
+        {:else if !appState.scanId}
+          <span>Ready to scan storage volume</span>
+        {:else}
+          <span>No matching items found</span>
+        {/if}
+      </div>
+    {:else}
+      {#each sorted as entry}
+        {@const size = getEntrySize(entry)}
+        {@const pct = Math.round((size / maxSize) * 100)}
+        {@const meta = getCategoryMeta(entry)}
+        {@const fullPath = getEntryFullPath(entry)}
+        {@const isPurgeable = meta.badge === 'PURGEABLE'}
+
+        <div
+          class="table-row"
+          class:row-purgeable={isPurgeable}
+          role="button"
+          tabindex="0"
+          onclick={() => navigateTo(entry)}
+          onkeydown={(e) => e.key === 'Enter' && navigateTo(entry)}
+        >
+          <!-- Left: Icon Box + Name + Badge + Truncated Path -->
+          <div class="col-name cell-meta">
+            <div class="icon-box" style="border-color: {meta.color}40; background: {meta.color}15">
+              <span class="material-symbols-outlined row-glyph" style="color: {meta.color}">
+                {meta.icon}
+              </span>
+            </div>
+
+            <div class="name-cluster">
+              <div class="name-row">
+                <span class="item-name" title={entry.name}>{entry.name}</span>
+                <span class="category-pill font-mono" style="color: {meta.color}; border-color: {meta.color}40; background: {meta.color}18">
+                  {meta.badge}
+                </span>
+              </div>
+              <span class="item-path font-mono" title={fullPath}>
+                {fullPath}
+              </span>
+            </div>
+          </div>
+
+          <!-- Center: Size Value + Proportional Bar Gauge -->
+          <div class="col-size cell-size">
+            <span class="size-val font-mono" style="color: {size > 30000000000 ? '#F97316' : (size > 10000000000 ? '#F59E0B' : '#14B8A6')}">
+              {formatBytes(size, appState.useBinaryUnits)}
+            </span>
+            <div class="mini-bar-track">
+              <div
+                class="mini-bar-fill"
+                style="width: {pct}%; background: {meta.color}"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Actions (Reveal in Finder, Move to Trash, Purge) -->
+          <div class="col-actions cell-actions">
+            {#if isPurgeable}
+              <button
+                class="btn-purge-pill font-mono"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(fullPath, entry);
+                }}
+                title="Purge / Clean this cache"
+              >
+                Purge
+              </button>
+            {:else}
+              <button
+                class="btn-action-icon"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(fullPath);
+                  alert(`Copied path to clipboard:\n${fullPath}`);
+                }}
+                title="Copy Path"
+              >
+                <span class="material-symbols-outlined">visibility</span>
+              </button>
+
+              <button
+                class="btn-action-icon delete"
+                onclick={(e) => {
+                  e.stopPropagation();
+                  setDeleteTarget(fullPath, entry);
+                }}
+                title="Move to Trash"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
             {/if}
           </div>
-          <!-- Horizontal Mini Proportion Gauge directly under name -->
-          <div class="mini-gauge-track">
-            <div
-              class="mini-gauge-fill"
-              class:high={size > 20_000_000_000}
-              style="width: {pct}%"
-            ></div>
-          </div>
         </div>
-
-        <!-- Formatted Byte Size -->
-        <div class="col-size size-cell">
-          {formatBytes(size, appState.useBinaryUnits)}
-        </div>
-
-        <!-- Actions -->
-        <div class="col-actions actions-cell">
-          <button
-            class="action-trash-btn"
-            onclick={(e) => {
-              e.stopPropagation();
-              setDeleteTarget(entry.path, entry);
-            }}
-            title="Move {entry.name} to Trash"
-            aria-label="Delete {entry.name}"
-          >
-            🗑
-          </button>
-        </div>
-      </div>
-    {/each}
+      {/each}
+    {/if}
   </div>
-</div>
+
+  <!-- Right Panel Bottom Footer info (Stitch Screen 1) -->
+  <div class="panel-footer font-mono">
+    <span class="footer-count">
+      Showing Top {sorted.length} of {appState.currentChildren.length.toLocaleString()} items
+    </span>
+    <span
+      class="footer-cta"
+      role="button"
+      tabindex="0"
+      onclick={() => appState.activeFilter = 'all'}
+      onkeydown={(e) => e.key === 'Enter' && (appState.activeFilter = 'all')}
+    >
+      View All Consumers ›
+    </span>
+  </div>
+</aside>
 
 <style>
-  .top-consumers-panel {
+  .consumers-panel {
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    height: 100%;
-    background: #101319;
-    border-left: 1px solid rgba(88, 66, 55, 0.25);
-    user-select: none;
+    background: #0B0E14;
     overflow: hidden;
+    user-select: none;
   }
+
+  /* Header 36px */
   .panel-header {
-    height: 38px;
-    padding: 0 12px;
+    height: 36px;
+    min-height: 36px;
+    background: #101319;
     border-bottom: 1px solid rgba(88, 66, 55, 0.25);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #161B22;
+    padding: 0 12px;
   }
-  .title-cluster {
+  .header-left {
     display: flex;
     align-items: center;
-    gap: 6px;
-  }
-  .header-icon {
-    font-size: 0.9375rem;
+    gap: 8px;
   }
   .panel-title {
-    font-family: Inter, -apple-system, sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.8125rem;
     font-weight: 600;
     color: #F0F6FC;
-    margin: 0;
   }
-  .count-chip {
-    font-family: 'JetBrains Mono', monospace;
+  .items-count-badge {
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     padding: 1px 6px;
     border-radius: 4px;
     background: #272A31;
     color: #8B949E;
-  }
-  .sort-action {
-    display: flex;
-    align-items: center;
-  }
-  .sort-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.625rem;
-    color: #8B949E;
-    background: #1D2026;
-    padding: 2px 6px;
-    border-radius: 4px;
-    border: 1px solid #32353C;
+    border: 1px solid rgba(88, 66, 55, 0.3);
   }
 
-  /* Table Header */
+  /* Sort dropdown button */
+  .sort-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #191C22;
+    border: 1px solid rgba(88, 66, 55, 0.35);
+    color: #8B949E;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .sort-dropdown-btn:hover {
+    color: #F0F6FC;
+    border-color: #F97316;
+  }
+  .icon-sort, .icon-chevron {
+    font-size: 14px;
+  }
+
+  /* Table Header (24px) */
   .table-header {
     height: 24px;
     min-height: 24px;
-    background: #161B22;
-    padding: 0 12px;
+    background: #101319;
+    border-bottom: 1px solid rgba(88, 66, 55, 0.2);
     display: flex;
     align-items: center;
-    border-bottom: 1px solid rgba(88, 66, 55, 0.25);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.625rem;
+    padding: 0 12px;
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
     color: #8B949E;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
   }
-  .col-rank {
-    width: 28px;
-    text-align: center;
-  }
-  .col-node {
+  .col-name {
     flex: 1;
     min-width: 0;
-    padding: 0 8px;
   }
   .col-size {
-    width: 80px;
+    width: 100px;
     text-align: right;
+    padding-right: 8px;
   }
   .col-actions {
-    width: 38px;
+    width: 60px;
     text-align: right;
   }
 
-  /* Table Body & Rows */
+  /* Table Rows */
   .table-body {
     flex: 1;
     overflow-y: auto;
-    divide-y: 1px solid rgba(88, 66, 55, 0.15);
+    background: #0B0E14;
   }
   .table-row {
-    height: 40px;
-    min-height: 40px;
-    padding: 0 12px;
     display: flex;
     align-items: center;
-    cursor: pointer;
-    transition: background 0.1s ease;
+    padding: 6px 12px;
     border-bottom: 1px solid rgba(88, 66, 55, 0.12);
+    cursor: pointer;
+    transition: background 0.12s;
+    height: 48px;
+    box-sizing: border-box;
   }
   .table-row:hover {
-    background: #1D2026;
+    background: #191C22;
   }
-  .table-row.is-active {
-    border-left: 2px solid #F97316;
-    background: rgba(249, 115, 22, 0.05);
+  .table-row.row-purgeable {
+    background: rgba(244, 63, 94, 0.04);
   }
-  .table-row:hover .action-trash-btn {
-    opacity: 1;
-  }
-  .rank-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.6875rem;
-    color: #8B949E;
-  }
-  .table-row.is-active .rank-num {
-    color: #F97316;
-    font-weight: 700;
+  .table-row.row-purgeable:hover {
+    background: rgba(244, 63, 94, 0.09);
   }
 
-  /* Node Cell */
-  .node-cell {
+  /* Cell Meta */
+  .cell-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .icon-box {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    border: 1px solid rgba(88, 66, 55, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .row-glyph {
+    font-size: 15px;
+  }
+  .name-cluster {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 3px;
+    min-width: 0;
+    gap: 1px;
   }
-  .node-meta {
+  .name-row {
     display: flex;
     align-items: center;
     gap: 6px;
     min-width: 0;
   }
-  .node-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .node-dot.orange {
-    background: #F97316;
-    box-shadow: 0 0 6px rgba(249, 115, 22, 0.5);
-  }
-  .node-dot.teal {
-    background: #14B8A6;
-  }
-  .node-icon {
-    font-size: 0.8125rem;
-    flex-shrink: 0;
-  }
-  .node-name {
-    font-family: Inter, -apple-system, sans-serif;
-    font-size: 0.8125rem;
-    font-weight: 500;
+  .item-name {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 600;
     color: #F0F6FC;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .node-name.hidden-node {
-    color: #8B949E;
-    font-style: italic;
-  }
-  .child-tag {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.5625rem;
-    color: #8B949E;
-    background: #1D2026;
+  .category-pill {
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    font-weight: 700;
     padding: 0 4px;
     border-radius: 3px;
+    border: 1px solid transparent;
     flex-shrink: 0;
   }
-  .mini-gauge-track {
-    width: 100%;
+  .item-path {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: #8B949E;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Cell Size */
+  .cell-size {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .size-val {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .mini-bar-track {
+    width: 60px;
     height: 3px;
-    background: #1D2026;
+    background: #191C22;
     border-radius: 2px;
     overflow: hidden;
   }
-  .mini-gauge-fill {
+  .mini-bar-fill {
     height: 100%;
-    background: #4FDCB8;
     border-radius: 2px;
   }
-  .mini-gauge-fill.high {
-    background: #F97316;
-  }
 
-  /* Size Cell */
-  .size-cell {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #F0F6FC;
-  }
-  .table-row.is-active .size-cell {
-    color: #F97316;
-  }
-
-  /* Actions */
-  .actions-cell {
+  /* Cell Actions */
+  .cell-actions {
     display: flex;
+    align-items: center;
     justify-content: flex-end;
+    gap: 4px;
   }
-  .action-trash-btn {
-    background: none;
+  .btn-action-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
     border: none;
-    font-size: 0.875rem;
+    color: #8B949E;
+    border-radius: 4px;
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.15s;
-    padding: 2px 4px;
-    border-radius: 4px;
+    transition: all 0.12s;
   }
-  .action-trash-btn:hover {
-    background: rgba(239, 68, 68, 0.2);
-    filter: drop-shadow(0 0 4px rgba(239, 68, 68, 0.5));
+  .table-row:hover .btn-action-icon {
+    opacity: 1;
+  }
+  .btn-action-icon:hover {
+    background: #272A31;
+    color: #F0F6FC;
+  }
+  .btn-action-icon.delete:hover {
+    color: #F43F5E;
+    background: rgba(244, 63, 94, 0.15);
+  }
+  .btn-action-icon span {
+    font-size: 15px;
+  }
+
+  .btn-purge-pill {
+    padding: 2px 8px;
+    background: rgba(244, 63, 94, 0.15);
+    border: 1px solid rgba(244, 63, 94, 0.4);
+    color: #ffb4ab;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .btn-purge-pill:hover {
+    background: #F43F5E;
+    color: white;
+  }
+
+  /* Empty state */
+  .empty-list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #8B949E;
+    font-size: 0.75rem;
+    padding: 2rem;
+  }
+
+  /* Panel Footer (28px) */
+  .panel-footer {
+    height: 28px;
+    min-height: 28px;
+    background: #101319;
+    border-top: 1px solid rgba(88, 66, 55, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+  }
+  .footer-count {
+    color: #8B949E;
+  }
+  .footer-cta {
+    color: #14B8A6;
+    cursor: pointer;
+    transition: color 0.12s;
+  }
+  .footer-cta:hover {
+    text-decoration: underline;
   }
 </style>

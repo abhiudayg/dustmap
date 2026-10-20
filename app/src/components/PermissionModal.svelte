@@ -113,7 +113,7 @@
     font-size: 1.25rem;
     font-weight: 700;
     color: #F59E0B;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
   }
   .warn-label {
     font-size: 0.8125rem;
@@ -134,7 +134,7 @@
     line-height: 1.6;
   }
   .protected-list code {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     background: #0E1117;
     padding: 0.125rem 0.375rem;
     border-radius: 4px;

@@ -266,7 +266,7 @@
     background: #F97316;
   }
   .ssd-text {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     font-weight: 700;
     color: #FFB690;
@@ -288,7 +288,7 @@
     letter-spacing: -0.025em;
   }
   .version-badge {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     font-weight: 600;
     color: #14B8A6;
@@ -316,7 +316,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.6875rem;
     color: #8B949E;
   }
@@ -358,7 +358,7 @@
   .meta-row {
     display: flex;
     justify-content: space-between;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: var(--font-mono);
     font-size: 0.625rem;
     color: #484F58;
   }
