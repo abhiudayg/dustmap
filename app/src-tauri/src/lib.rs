@@ -21,6 +21,7 @@ pub fn run() {
             commands::list_cache_entries,
             commands::reveal_in_finder,
             commands::delete_path,
+            commands::save_report_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

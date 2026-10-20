@@ -1,5 +1,5 @@
 import type { VolumeInfo, IpcEntry, IpcScanSummary } from './types';
-import { listVolumes, startScan, scanSummary, listChildren, listCacheEntries, revealInFinder, deletePath as invokeDelete } from './invoke';
+import { listVolumes, startScan, scanSummary, listChildren, listCacheEntries, revealInFinder, saveReportFile, deletePath as invokeDelete } from './invoke';
 
 export interface BreadcrumbItem {
   id: number;
@@ -39,6 +39,7 @@ export const appState = $state({
   cacheEntries: [] as IpcEntry[],
   history: [] as { entryId: number; breadcrumb: BreadcrumbItem[] }[],
   historyIdx: 0,
+  toastMessage: null as string | null,
 });
 
 export function getEntrySize(entry: IpcEntry): number {
@@ -174,31 +175,84 @@ export async function fetchCacheEntries() {
 }
 
 export async function exportReport() {
-  if (!appState.summary) {
-    alert('No scan summary available to export. Please scan a volume first.');
-    return;
-  }
+  const vol = appState.currentVolume || appState.volumes[0];
+  const summary = appState.summary || (vol ? appState.volumeCache[vol.mount_point]?.summary : null);
+
   const report = {
-    volume: appState.currentVolume?.name ?? 'Volume',
-    mount_point: appState.summary.root,
-    total_bytes: appState.summary.total_allocated,
-    items_count: appState.summary.total_items,
-    scan_duration_secs: appState.summary.duration_secs,
-    errors_encountered: appState.summary.error_count,
+    app: 'DustMap',
+    version: '0.1.0',
     exported_at: new Date().toISOString(),
-    top_entries: appState.currentChildren.slice(0, 25).map(e => ({
+    active_volume: {
+      name: vol?.name ?? 'Macintosh HD',
+      mount_point: vol?.mount_point ?? '/',
+      fs_type: vol?.fs_type ?? 'APFS',
+      total_bytes: vol?.total_bytes ?? 0,
+      used_bytes: vol?.used_bytes ?? 0,
+      available_bytes: vol?.available_bytes ?? 0,
+    },
+    scan_summary: summary
+      ? {
+          root: summary.root,
+          total_items: summary.total_items,
+          total_logical_bytes: summary.total_logical,
+          total_allocated_bytes: summary.total_allocated,
+          duration_seconds: summary.duration_secs,
+          error_count: summary.error_count,
+        }
+      : 'Initial volume overview (full scan not yet completed)',
+    top_consumers: appState.currentChildren.slice(0, 50).map(e => ({
       name: e.name,
-      bytes: e.total_allocated ?? e.allocated_bytes ?? e.logical_bytes,
+      path: e.path || e.name,
       kind: e.kind,
-      path: e.path,
+      size_bytes: e.total_allocated ?? e.allocated_bytes ?? e.total_logical ?? e.logical_bytes ?? 0,
+      is_hidden: e.isHidden,
+    })),
+    connected_volumes: appState.volumes.map(v => ({
+      name: v.name,
+      mount_point: v.mount_point,
+      total_bytes: v.total_bytes,
+      used_bytes: v.used_bytes,
     })),
   };
+
+  const jsonStr = JSON.stringify(report, null, 2);
+  const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const volName = (vol?.name || 'Volume').replace(/[^a-zA-Z0-9]/g, '_');
+  const filename = `DustMap-Report-${volName}-${dateStr}.json`;
+
+  let exportedPath = '';
   try {
-    await navigator.clipboard.writeText(JSON.stringify(report, null, 2));
-    alert('Telemetry & Disk Space Report copied to clipboard!');
-  } catch (e) {
-    console.error('Failed to copy report to clipboard:', e);
+    exportedPath = await saveReportFile(jsonStr, filename);
+  } catch (err) {
+    console.warn('Native save failed, falling back to browser blob download:', err);
+    try {
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (_) {}
   }
+
+  // Also copy to clipboard as convenient fallback
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(jsonStr);
+    }
+  } catch (_) {}
+
+  // Trigger feedback toast notification
+  appState.toastMessage = exportedPath
+    ? `Saved to ~/Downloads & revealed in Finder: ${filename}`
+    : `Report generated: ${filename} (copied to clipboard)`;
+
+  setTimeout(() => {
+    appState.toastMessage = null;
+  }, 4500);
 }
 
 export async function navigateTo(entry: IpcEntry) {

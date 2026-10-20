@@ -229,3 +229,21 @@ pub async fn delete_path(
         }),
     }
 }
+
+#[tauri::command]
+pub async fn save_report_file(content: String, filename: String) -> Result<String, String> {
+    let home = std::env::var("HOME").map_err(|e| e.to_string())?;
+    let downloads = PathBuf::from(home).join("Downloads");
+    let target = downloads.join(&filename);
+    std::fs::write(&target, content).map_err(|e| format!("Failed to write report file: {}", e))?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let _ = std::process::Command::new("open")
+            .arg("-R")
+            .arg(&target)
+            .spawn();
+    }
+
+    Ok(target.display().to_string())
+}

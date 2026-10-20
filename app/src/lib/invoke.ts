@@ -25,6 +25,10 @@ export async function revealInFinder(path: string): Promise<void> {
   return invoke<void>('reveal_in_finder', { path });
 }
 
+export async function saveReportFile(content: string, filename: string): Promise<string> {
+  return invoke<string>('save_report_file', { content, filename });
+}
+
 export async function deletePath(
   path: string,
   permanent: boolean,
