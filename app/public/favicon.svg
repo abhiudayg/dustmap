@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#2D313A" />
+      <stop offset="45%" stop-color="#161B22" />
+      <stop offset="100%" stop-color="#0A0D12" />
+    </linearGradient>
+
+    <!-- Specular Bevel Top Gradient -->
+    <linearGradient id="bevelGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Radar Sweep Gradient -->
+    <linearGradient id="sweepGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FDCB8" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#4FDCB8" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Ambient Shadow Filter -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="24" stdDeviation="32" flood-color="#000000" flood-opacity="0.7" />
+    </filter>
+
+    <!-- Inner Radial Grid Gradient -->
+    <radialGradient id="innerGridGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1F242C" />
+      <stop offset="80%" stop-color="#0B0E13" />
+      <stop offset="100%" stop-color="#07090C" />
+    </radialGradient>
+  </defs>
+
+  <!-- Ambient Outer Glow -->
+  <rect x="72" y="72" width="880" height="880" rx="200" fill="none" stroke="#F97316" stroke-width="4" stroke-opacity="0.25" filter="url(#dropShadow)" />
+
+  <!-- Master macOS Squircle Container -->
+  <rect x="80" y="80" width="864" height="864" rx="192" fill="url(#bgGrad)" stroke="#3D4450" stroke-width="3" />
+
+  <!-- Top Specular Bevel -->
+  <path d="M 80 272 C 80 166 166 80 272 80 L 752 80 C 858 80 944 166 944 272 L 944 480 L 80 480 Z" fill="url(#bevelGrad)" />
+
+  <!-- Inner Display Stage -->
+  <rect x="136" y="136" width="752" height="752" rx="148" fill="url(#innerGridGrad)" stroke="#30363D" stroke-width="2" />
+
+  <!-- Orthogonal Matrix Grid -->
+  <g stroke="#4FDCB8" stroke-opacity="0.04" stroke-width="1.5">
+    <line x1="136" y1="260" x2="888" y2="260" />
+    <line x1="136" y1="384" x2="888" y2="384" />
+    <line x1="136" y1="512" x2="888" y2="512" />
+    <line x1="136" y1="640" x2="888" y2="640" />
+    <line x1="136" y1="764" x2="888" y2="764" />
+    <line x1="260" y1="136" x2="260" y2="888" />
+    <line x1="384" y1="136" x2="384" y2="888" />
+    <line x1="512" y1="136" x2="512" y2="888" />
+    <line x1="640" y1="136" x2="640" y2="888" />
+    <line x1="764" y1="136" x2="764" y2="888" />
+  </g>
+
+  <!-- Concentric Orbital Telemetry Rings -->
+  <circle cx="512" cy="512" r="320" fill="none" stroke="#584237" stroke-width="2.5" stroke-dasharray="8 10" stroke-opacity="0.7" />
+  <circle cx="512" cy="512" r="236" fill="none" stroke="#4FDCB8" stroke-width="2" stroke-opacity="0.35" />
+  <circle cx="512" cy="512" r="148" fill="none" stroke="#F97316" stroke-width="2" stroke-opacity="0.45" />
+
+  <!-- Precision Crosshairs -->
+  <line x1="512" y1="160" x2="512" y2="864" stroke="#A78B7D" stroke-width="1.5" stroke-opacity="0.35" />
+  <line x1="160" y1="512" x2="864" y2="512" stroke="#A78B7D" stroke-width="1.5" stroke-opacity="0.35" />
+
+  <!-- Sector 1: Primary Partition (Vivid Amber-Orange) -->
+  <path d="M 512 512 L 512 276 A 236 236 0 0 1 748 512 Z" fill="#F97316" fill-opacity="0.85" stroke="#FFB690" stroke-width="2.5" />
+
+  <!-- Sector 2: Secondary APFS Blocks (Teal Cyan) -->
+  <path d="M 512 512 L 748 512 A 236 236 0 0 1 645 704 Z" fill="#04B4A2" fill-opacity="0.8" stroke="#4FDCB8" stroke-width="2.5" />
+
+  <!-- Sector 3: Purgeable Cluster (Violet) -->
+  <path d="M 512 512 L 645 704 A 236 236 0 0 1 379 718 Z" fill="#A985FF" fill-opacity="0.65" stroke="#D0BCFF" stroke-width="2" />
+
+  <!-- Sector 4: System Inodes (Deep Slate) -->
+  <path d="M 512 512 L 379 718 A 236 236 0 0 1 320 408 Z" fill="#272A31" fill-opacity="0.95" stroke="#584237" stroke-width="2" />
+
+  <!-- Active Telemetry Radar Sweep Cone -->
+  <path d="M 512 512 L 512 202 A 310 310 0 0 1 770 320 Z" fill="url(#sweepGrad)" />
+  <line x1="512" y1="512" x2="770" y2="320" stroke="#4FDCB8" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Center Core Node -->
+  <circle cx="512" cy="512" r="28" fill="#101319" stroke="#FFB690" stroke-width="4" />
+  <circle cx="512" cy="512" r="12" fill="#4FDCB8" />
+
+  <!-- Bottom Rim Horizon Reflection -->
+  <path d="M 170 820 L 854 820" stroke="#14B8A6" stroke-width="2.5" stroke-opacity="0.3" stroke-linecap="round" />
+
+  <!-- Corner Hardware Chip Badge (SSD) -->
+  <g transform="translate(712, 728)">
+    <rect width="136" height="54" rx="12" fill="#161B22" stroke="#3D4450" stroke-width="2" />
+    <circle cx="28" cy="27" r="7" fill="#F97316" />
+    <text x="50" y="36" fill="#FFB690" font-family="-apple-system, BlinkMacSystemFont, 'JetBrains Mono', monospace" font-size="24" font-weight="800" letter-spacing="1">SSD</text>
+  </g>
+</svg>

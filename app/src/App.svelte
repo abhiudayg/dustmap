@@ -8,6 +8,8 @@
   import DeleteModal from './components/DeleteModal.svelte';
   import ScanProgress from './components/ScanProgress.svelte';
   import StatusBar from './components/StatusBar.svelte';
+  import PermissionModal from './components/PermissionModal.svelte';
+  import SplashScreen from './components/SplashScreen.svelte';
 
   onMount(() => {
     loadVolumes();
@@ -15,6 +17,10 @@
 </script>
 
 <div class="app-shell">
+  {#if appState.showSplash}
+    <SplashScreen />
+  {/if}
+
   <VolumeBar />
 
   {#if appState.isScanning}
@@ -33,6 +39,7 @@
 
   <StatusBar />
   <DeleteModal />
+  <PermissionModal />
 </div>
 
 <style>

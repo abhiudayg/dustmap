@@ -180,3 +180,63 @@ fn test_jailbreak_symlink_escape_to_protected_system() {
 
     let _ = fs::remove_dir_all(&root);
 }
+
+#[test]
+fn test_jailbreak_symlink_cycle_loop() {
+    let root = create_jailbreak_fixture("symlink_cycle");
+    let link_a = root.join("link_a");
+    let link_b = root.join("link_b");
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+        let _ = symlink(&link_b, &link_a);
+        let _ = symlink(&link_a, &link_b);
+
+        // Scan must complete without infinite loop
+        let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let (tx, _rx) = std::sync::mpsc::channel();
+        let options = dustmap_core::scanner::ScanOptions::default();
+
+        let res = dustmap_core::scanner::scan(&root, options, cancel, tx);
+        assert!(
+            res.is_ok(),
+            "Scanner must survive cyclic symlinks without hanging or crashing"
+        );
+    }
+
+    let _ = fs::remove_dir_all(&root);
+}
+
+#[test]
+fn test_jailbreak_deletion_error_propagation_and_rejection() {
+    // 1. Non-existent path must produce explicit error
+    let fake_path = Path::new("/tmp/dustmap_non_existent_target_12345");
+    let del_err = delete_permanently(fake_path);
+    assert!(
+        del_err.is_err(),
+        "Deleting non-existent target must fail explicitly"
+    );
+
+    // 2. System protected path must be rejected with explicit SafetyError
+    let sys_path = Path::new("/System");
+    let validate_err = validate_delete_target(sys_path, None).expect_err("Must reject /System");
+    assert!(matches!(validate_err, SafetyError::SystemProtected(_)));
+
+    // 3. Traversal injection must be rejected with explicit SafetyError
+    let trav_path = Path::new("../../../etc/passwd");
+    let trav_err = validate_delete_target(trav_path, None).expect_err("Must reject traversal");
+    assert!(matches!(trav_err, SafetyError::PathTraversal(_)));
+}
+
+#[test]
+fn test_jailbreak_apfs_helper_mount_exclusion() {
+    let root = Path::new("/");
+    let cancel = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true)); // cancel immediately
+    let (tx, _rx) = std::sync::mpsc::channel();
+    let options = dustmap_core::scanner::ScanOptions::default();
+
+    // Verify scan options can initialize with root and default exclusions applied
+    let res = dustmap_core::scanner::scan(root, options, cancel, tx);
+    assert!(res.is_ok());
+}

@@ -187,3 +187,40 @@ fn test_audit_log_records_deletion_entry() {
 
     let _ = fs::remove_file(&log_path);
 }
+
+#[test]
+fn test_index_metric_sorting_and_child_removal() {
+    let root = create_test_fixture("metric_sort");
+
+    let dir_small = root.join("small");
+    fs::create_dir_all(&dir_small).unwrap();
+    let mut f1 = File::create(dir_small.join("small.bin")).unwrap();
+    f1.write_all(&[0u8; 100]).unwrap();
+
+    let dir_large = root.join("large");
+    fs::create_dir_all(&dir_large).unwrap();
+    let mut f2 = File::create(dir_large.join("large.bin")).unwrap();
+    f2.write_all(&[0u8; 5000]).unwrap();
+
+    let (tx, _rx) = mpsc::channel();
+    let cancel = Arc::new(AtomicBool::new(false));
+    let options = ScanOptions::default();
+
+    let mut result = scan(&root, options, cancel, tx).expect("Scan should succeed");
+
+    // Children of root should be sorted with large first
+    let sorted_alloc = result.index.children_sorted_by_size(ROOT_ID);
+    assert_eq!(sorted_alloc.len(), 2);
+
+    let first = result.index.entry(sorted_alloc[0]).unwrap();
+    assert_eq!(first.name, "large");
+
+    // Test child removal
+    let child_to_remove = sorted_alloc[0];
+    result.index.remove_child(ROOT_ID, child_to_remove);
+    let remaining = result.index.children_sorted_by_size(ROOT_ID);
+    assert_eq!(remaining.len(), 1);
+    assert_eq!(result.index.entry(remaining[0]).unwrap().name, "small");
+
+    let _ = fs::remove_dir_all(&root);
+}

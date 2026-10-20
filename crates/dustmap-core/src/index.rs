@@ -124,19 +124,43 @@ impl Index {
         }
     }
 
-    /// Return children sorted by logical size descending.
+    /// Remove a child entry from a parent's children list (e.g. after deletion)
+    pub fn remove_child(&mut self, parent: EntryId, child: EntryId) {
+        if let Some(list) = self.children.get_mut(parent.0 as usize) {
+            list.retain(|&id| id != child);
+        }
+    }
+
+    /// Return children sorted by allocated physical size descending (default).
     pub fn children_sorted_by_size(&self, id: EntryId) -> Vec<EntryId> {
+        self.children_sorted_by_metric(id, false)
+    }
+
+    /// Return children sorted by metric: false = allocated (physical), true = logical.
+    pub fn children_sorted_by_metric(&self, id: EntryId, use_logical: bool) -> Vec<EntryId> {
         let mut children = self.children(id).to_vec();
         children.sort_by(|a, b| {
             let sa = self
                 .aggregates
                 .get(a.0 as usize)
-                .map(|ag| ag.logical_total)
+                .map(|ag| {
+                    if use_logical {
+                        ag.logical_total
+                    } else {
+                        ag.allocated_total
+                    }
+                })
                 .unwrap_or(0);
             let sb = self
                 .aggregates
                 .get(b.0 as usize)
-                .map(|ag| ag.logical_total)
+                .map(|ag| {
+                    if use_logical {
+                        ag.logical_total
+                    } else {
+                        ag.allocated_total
+                    }
+                })
                 .unwrap_or(0);
             sb.cmp(&sa)
         });

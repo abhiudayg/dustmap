@@ -97,10 +97,28 @@ pub fn scan(
     let entries_seen = Arc::new(AtomicU64::new(0));
     let bytes_accounted = Arc::new(AtomicU64::new(0));
 
+    let mut exclusions = options.exclusions.clone();
+    if root == Path::new("/") {
+        // Exclude APFS volume group helper mounts to avoid scanning duplicate trees (Data firmlink),
+        // external mounted volumes, and special device nodes.
+        exclusions.push(PathBuf::from("/System/Volumes"));
+        exclusions.push(PathBuf::from("/Volumes"));
+        exclusions.push(PathBuf::from("/dev"));
+        exclusions.push(PathBuf::from("/.fseventsd"));
+    }
+
+    let exclusions_clone = exclusions.clone();
     let walker = WalkDir::new(root)
         .follow_links(options.follow_symlinks)
         .same_file_system(!options.cross_filesystems)
-        .into_iter();
+        .into_iter()
+        .filter_entry(move |entry| {
+            let p = entry.path();
+            if p == root {
+                return true;
+            }
+            !exclusions_clone.iter().any(|ex| p.starts_with(ex))
+        });
 
     let mut last_progress = Instant::now();
 

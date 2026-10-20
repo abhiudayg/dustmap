@@ -8,6 +8,7 @@ pub use crate::volumes::VolumeInfo;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IpcEntry {
     pub id: u32,
+    pub path: String,
     pub name: String,
     pub kind: EntryKind,
     pub logical_bytes: u64,

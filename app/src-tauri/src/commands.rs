@@ -1,6 +1,7 @@
 use dustmap_core::{
     index::{EntryId, ROOT_ID},
     ipc::{IpcChildrenResponse, IpcDeleteResult, IpcEntry, IpcScanSummary, VolumeInfo},
+    safety::validate_delete_target,
     scanner::{scan, ScanOptions, ScanResult},
     trash::{delete_permanently, move_to_trash},
     volumes::list_volumes,
@@ -18,6 +19,28 @@ pub struct ScanStore {
 
 pub type SharedScanStore = Arc<Mutex<ScanStore>>;
 
+fn entry_full_path(result: &ScanResult, entry_id: EntryId) -> PathBuf {
+    if entry_id == ROOT_ID {
+        return result.root.clone();
+    }
+    let mut segments = Vec::new();
+    let mut curr = entry_id;
+    while curr != ROOT_ID {
+        if let Some(entry) = result.index.entry(curr) {
+            segments.push(entry.name.clone());
+            curr = entry.parent;
+        } else {
+            break;
+        }
+    }
+    segments.reverse();
+    let mut p = result.root.clone();
+    for seg in segments {
+        p.push(seg);
+    }
+    p
+}
+
 fn entry_to_ipc(result: &dustmap_core::scanner::ScanResult, entry_id: EntryId) -> Option<IpcEntry> {
     let entry = result.index.entry(entry_id)?;
     let agg = result.index.aggregate(entry_id);
@@ -26,8 +49,10 @@ fn entry_to_ipc(result: &dustmap_core::scanner::ScanResult, entry_id: EntryId) -
     } else {
         None
     };
+    let full_path = entry_full_path(result, entry_id);
     Some(IpcEntry {
         id: entry_id.0,
+        path: full_path.display().to_string(),
         name: entry.name.clone(),
         kind: entry.kind,
         logical_bytes: entry.logical_bytes,
@@ -117,19 +142,46 @@ pub async fn list_children(
 }
 
 #[tauri::command]
-pub async fn delete_path(path: String, permanent: bool) -> Result<IpcDeleteResult, String> {
+pub async fn delete_path(
+    path: String,
+    permanent: bool,
+    scan_id: Option<String>,
+    entry_id: Option<u32>,
+    parent_id: Option<u32>,
+    state: State<'_, SharedScanStore>,
+) -> Result<IpcDeleteResult, String> {
     let p = PathBuf::from(&path);
+
+    // Validate path against safety rules (no deleting /System, root, SIP, or outside boundaries)
+    if let Err(safety_err) = validate_delete_target(&p, None) {
+        return Ok(IpcDeleteResult {
+            path,
+            success: false,
+            error: Some(format!("Safety Protection: {}", safety_err)),
+        });
+    }
+
     let result = if permanent {
         delete_permanently(&p)
     } else {
         move_to_trash(&p)
     };
     match result {
-        Ok(()) => Ok(IpcDeleteResult {
-            path,
-            success: true,
-            error: None,
-        }),
+        Ok(()) => {
+            // Remove entry from parent's children in memory if active scan
+            if let (Some(sid), Some(eid), Some(pid)) = (scan_id, entry_id, parent_id) {
+                if let Ok(mut store) = state.lock() {
+                    if let Some(scan_res) = store.scans.get_mut(&sid) {
+                        scan_res.index.remove_child(EntryId(pid), EntryId(eid));
+                    }
+                }
+            }
+            Ok(IpcDeleteResult {
+                path,
+                success: true,
+                error: None,
+            })
+        }
         Err(e) => Ok(IpcDeleteResult {
             path,
             success: false,

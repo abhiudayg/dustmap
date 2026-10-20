@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-20T19:29:25Z",
+  "generated_at": "2026-10-20T22:30:46Z",
   "git": {
-    "commit": "unknown",
-    "branch": "unknown"
+    "commit": "23d43afbac5724c9d21df022875e53d84a6a0ab4",
+    "branch": "main"
   },
   "summary": {
-    "total": 19,
-    "passed": 19,
+    "total": 23,
+    "passed": 23,
     "failed": 0,
     "skipped": 0,
     "score": 100,
@@ -20,7 +20,7 @@
       "severity": "critical",
       "title": "Rust workspace builds cleanly",
       "status": "pass",
-      "duration_s": 5,
+      "duration_s": 1,
       "detail": ""
     },
     {
@@ -38,7 +38,7 @@
       "severity": "high",
       "title": "Clippy reports no warnings or errors",
       "status": "pass",
-      "duration_s": 2,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -47,7 +47,7 @@
       "severity": "critical",
       "title": "All unit and integration tests pass",
       "status": "pass",
-      "duration_s": 5,
+      "duration_s": 2,
       "detail": ""
     },
     {
@@ -65,7 +65,7 @@
       "severity": "critical",
       "title": "Directory hierarchy traversal and byte size calculations",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -119,7 +119,7 @@
       "severity": "high",
       "title": "CLI execution with text and JSON outputs",
       "status": "pass",
-      "duration_s": 2,
+      "duration_s": 4,
       "detail": ""
     },
     {
@@ -137,7 +137,7 @@
       "severity": "critical",
       "title": "Directory traversal injection (../../etc/passwd) rejected",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -155,7 +155,7 @@
       "severity": "critical",
       "title": "SIP and system protected directories blocked from deletion",
       "status": "pass",
-      "duration_s": 0,
+      "duration_s": 1,
       "detail": ""
     },
     {
@@ -181,6 +181,42 @@
       "kind": "jailbreak",
       "severity": "high",
       "title": "Application executes without root/sudo elevation",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "S-SORT-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "Index metric sorting by allocated physical size and child removal",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "F-CYCLE-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Symlink cycle loop does not hang or crash scanner",
+      "status": "pass",
+      "duration_s": 1,
+      "detail": ""
+    },
+    {
+      "id": "F-ERR-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Deletion failure error propagation and explicit rejection",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "F-APFS-01",
+      "kind": "jailbreak",
+      "severity": "high",
+      "title": "APFS helper mounts and firmlink duplicate trees excluded during root traversal",
       "status": "pass",
       "duration_s": 0,
       "detail": ""

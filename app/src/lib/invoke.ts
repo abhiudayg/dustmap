@@ -17,6 +17,18 @@ export async function listChildren(scanId: string, entryId: number): Promise<Ipc
   return invoke<IpcChildrenResponse>('list_children', { scanId, entryId });
 }
 
-export async function deletePath(path: string, permanent: boolean): Promise<IpcDeleteResult> {
-  return invoke<IpcDeleteResult>('delete_path', { path, permanent });
+export async function deletePath(
+  path: string,
+  permanent: boolean,
+  scanId?: string | null,
+  entryId?: number | null,
+  parentId?: number | null,
+): Promise<IpcDeleteResult> {
+  return invoke<IpcDeleteResult>('delete_path', {
+    path,
+    permanent,
+    scanId: scanId ?? null,
+    entryId: entryId ?? null,
+    parentId: parentId ?? null,
+  });
 }

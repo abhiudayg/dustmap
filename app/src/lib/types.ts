@@ -11,6 +11,7 @@ export interface VolumeInfo {
 
 export interface IpcEntry {
   id: number;
+  path: string;
   name: string;
   kind: 'File' | 'Directory' | 'Symlink' | 'Other';
   logical_bytes: number;

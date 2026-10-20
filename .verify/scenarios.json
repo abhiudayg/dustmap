@@ -189,6 +189,46 @@
       "when": "Checking user UID",
       "then": "UID is non-zero (unprivileged user context)",
       "command": "test $(id -u) -ne 0"
+    },
+    {
+      "id": "S-SORT-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "Index metric sorting by allocated physical size and child removal",
+      "given": "A tree with varying size entries",
+      "when": "Querying children_sorted_by_size and remove_child",
+      "then": "Entries are ranked by physical disk blocks and child removal updates list",
+      "command": "cargo test -p dustmap-core --test functional_tests test_index_metric_sorting_and_child_removal"
+    },
+    {
+      "id": "F-CYCLE-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Symlink cycle loop does not hang or crash scanner",
+      "given": "A directory containing a recursive symlink cycle (link_a -> link_b -> link_a)",
+      "when": "Scanner executes over the directory",
+      "then": "Scanner finishes normally without stack overflow or infinite recursion",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_symlink_cycle_loop"
+    },
+    {
+      "id": "F-ERR-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Deletion failure error propagation and explicit rejection",
+      "given": "Non-existent paths, traversal paths, or system protected paths",
+      "when": "Deletion operations are executed",
+      "then": "Explicit error is returned and never swallowed silently",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_deletion_error_propagation_and_rejection"
+    },
+    {
+      "id": "F-APFS-01",
+      "kind": "jailbreak",
+      "severity": "high",
+      "title": "APFS helper mounts and firmlink duplicate trees excluded during root traversal",
+      "given": "A scan of the root volume /",
+      "when": "Default scan exclusions are constructed",
+      "then": "/System/Volumes and /dev are excluded to avoid scanning duplicate trees",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_apfs_helper_mount_exclusion"
     }
   ]
 }
