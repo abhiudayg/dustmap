@@ -6,6 +6,9 @@
   let searchInput: HTMLInputElement;
   let showDisksDropdown = $state(false);
 
+  const activeVol = $derived(appState.currentVolume || appState.volumes[0]);
+  const activePct = $derived(activeVol ? usagePercent(activeVol.used_bytes, activeVol.total_bytes) : 0);
+
   onMount(() => {
     loadVolumes();
 
@@ -25,8 +28,19 @@
       }
     };
 
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.volume-dropdown-container')) {
+        showDisksDropdown = false;
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('click', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('click', handleClickOutside);
+    };
   });
 
   async function handlePurgeCacheClick() {
@@ -75,117 +89,70 @@
     </div>
   </div>
 
-  <!-- Center: Volume Selector Cluster (Handles 1 to 10+ Disks Gracefully) -->
-  <div class="volume-selector-cluster">
-    {#if appState.volumes.length <= 2}
-      <!-- 1 or 2 disks: direct chips -->
-      {#each appState.volumes as vol}
-        {@const pct = usagePercent(vol.used_bytes, vol.total_bytes)}
-        {@const active = appState.currentVolume?.mount_point === vol.mount_point}
-        <button
-          class="volume-chip"
-          class:active
-          onclick={() => selectVolume(vol, false)}
-          title="Volume: {vol.name || vol.mount_point} ({vol.fs_type})"
-        >
-          <span class="material-symbols-outlined drive-icon">
-            {vol.is_removable ? 'usb' : 'hard_drive'}
-          </span>
-          <div class="drive-meta">
-            <div class="drive-row">
-              <span class="drive-title">{vol.name || 'Macintosh HD'}</span>
-              <span class="drive-type">({vol.is_removable ? 'External' : 'Internal SSD'})</span>
-            </div>
-            <div class="gauge-row">
-              <div class="gauge-bar">
-                <div class="gauge-fill" style="width: {pct}%"></div>
-              </div>
-              <span class="gauge-label font-mono">
-                {formatBytes(vol.used_bytes, appState.useBinaryUnits)} / {formatBytes(vol.total_bytes, appState.useBinaryUnits)}
-              </span>
-            </div>
-          </div>
-        </button>
-      {/each}
-    {:else}
-      <!-- 3 to 10+ disks: Active Disk prominent chip + Dropdown Menu -->
-      {@const activeVol = appState.currentVolume || appState.volumes[0]}
-      {@const activePct = activeVol ? usagePercent(activeVol.used_bytes, activeVol.total_bytes) : 0}
-
-      <button
-        class="volume-chip active"
-        onclick={() => showDisksDropdown = !showDisksDropdown}
-        title="Active Volume: {activeVol?.name} — click to view all {appState.volumes.length} disks"
-      >
-        <span class="material-symbols-outlined drive-icon">
-          {activeVol?.is_removable ? 'usb' : 'hard_drive'}
-        </span>
-        <div class="drive-meta">
-          <div class="drive-row">
-            <span class="drive-title">{activeVol?.name || 'Macintosh HD'}</span>
-            <span class="drive-type">({activeVol?.is_removable ? 'External' : 'Internal SSD'})</span>
-          </div>
-          <div class="gauge-row">
-            <div class="gauge-bar">
-              <div class="gauge-fill" style="width: {activePct}%"></div>
-            </div>
-            <span class="gauge-label font-mono">
-              {formatBytes(activeVol?.used_bytes ?? 0, appState.useBinaryUnits)} / {formatBytes(activeVol?.total_bytes ?? 0, appState.useBinaryUnits)}
-            </span>
-          </div>
+  <!-- Center: Volume Selector Dropdown (All Disks in a Clean Dropdown) -->
+  <div class="volume-dropdown-container">
+    <button
+      class="volume-dropdown-trigger"
+      class:open={showDisksDropdown}
+      onclick={() => showDisksDropdown = !showDisksDropdown}
+      title="Select Disk Volume ({appState.volumes.length} mounted) — click to switch"
+    >
+      <span class="material-symbols-outlined drive-icon">
+        {activeVol?.is_removable ? 'usb' : 'hard_drive'}
+      </span>
+      <div class="drive-meta">
+        <div class="drive-row">
+          <span class="drive-title">{activeVol?.name || 'Macintosh HD'}</span>
+          <span class="drive-type">({activeVol?.is_removable ? 'External' : 'Internal SSD'})</span>
         </div>
-      </button>
-
-      <!-- Multi-disk dropdown trigger button -->
-      <div class="disks-dropdown-wrapper">
-        <button
-          class="disks-dropdown-trigger font-mono"
-          class:open={showDisksDropdown}
-          onclick={() => showDisksDropdown = !showDisksDropdown}
-          title="Switch among {appState.volumes.length} connected volumes"
-        >
-          <span>+{appState.volumes.length - 1} Disks</span>
-          <span class="material-symbols-outlined dropdown-arrow">
-            {showDisksDropdown ? 'expand_less' : 'expand_more'}
-          </span>
-        </button>
-
-        {#if showDisksDropdown}
-          <div class="disks-dropdown-menu">
-            <div class="dropdown-header font-mono">
-              <span>CONNECTED VOLUMES ({appState.volumes.length})</span>
-            </div>
-            {#each appState.volumes as vol}
-              {@const isCur = appState.currentVolume?.mount_point === vol.mount_point}
-              {@const pct = usagePercent(vol.used_bytes, vol.total_bytes)}
-              <button
-                class="dropdown-disk-item"
-                class:active={isCur}
-                onclick={() => {
-                  selectVolume(vol, false);
-                  showDisksDropdown = false;
-                }}
-              >
-                <span class="material-symbols-outlined disk-icon">
-                  {vol.is_removable ? 'usb' : 'hard_drive'}
-                </span>
-                <div class="disk-info">
-                  <div class="disk-name-row">
-                    <span class="disk-name">{vol.name || vol.mount_point}</span>
-                    <span class="disk-fs font-mono">{vol.fs_type}</span>
-                  </div>
-                  <div class="disk-stats-row font-mono">
-                    <span>{formatBytes(vol.used_bytes, appState.useBinaryUnits)} / {formatBytes(vol.total_bytes, appState.useBinaryUnits)}</span>
-                    <span>({pct}% used)</span>
-                  </div>
-                </div>
-                {#if isCur}
-                  <span class="material-symbols-outlined checkmark">check</span>
-                {/if}
-              </button>
-            {/each}
+        <div class="gauge-row">
+          <div class="gauge-bar">
+            <div class="gauge-fill" style="width: {activePct}%"></div>
           </div>
-        {/if}
+          <span class="gauge-label font-mono">
+            {formatBytes(activeVol?.used_bytes ?? 0, appState.useBinaryUnits)} / {formatBytes(activeVol?.total_bytes ?? 0, appState.useBinaryUnits)}
+          </span>
+        </div>
+      </div>
+      <span class="material-symbols-outlined dropdown-caret">
+        {showDisksDropdown ? 'expand_less' : 'unfold_more'}
+      </span>
+    </button>
+
+    {#if showDisksDropdown}
+      <div class="disks-dropdown-menu">
+        <div class="dropdown-header font-mono">
+          <span>SELECT STORAGE VOLUME ({appState.volumes.length})</span>
+        </div>
+        {#each appState.volumes as vol}
+          {@const isCur = appState.currentVolume?.mount_point === vol.mount_point}
+          {@const pct = usagePercent(vol.used_bytes, vol.total_bytes)}
+          <button
+            class="dropdown-disk-item"
+            class:active={isCur}
+            onclick={() => {
+              selectVolume(vol, false);
+              showDisksDropdown = false;
+            }}
+          >
+            <span class="material-symbols-outlined disk-icon">
+              {vol.is_removable ? 'usb' : 'hard_drive'}
+            </span>
+            <div class="disk-info">
+              <div class="disk-name-row">
+                <span class="disk-name">{vol.name || vol.mount_point}</span>
+                <span class="disk-fs font-mono">{vol.fs_type}</span>
+              </div>
+              <div class="disk-stats-row font-mono">
+                <span>{formatBytes(vol.used_bytes, appState.useBinaryUnits)} / {formatBytes(vol.total_bytes, appState.useBinaryUnits)}</span>
+                <span class="pct-tag">({pct}%)</span>
+              </div>
+            </div>
+            {#if isCur}
+              <span class="material-symbols-outlined checkmark">check</span>
+            {/if}
+          </button>
+        {/each}
       </div>
     {/if}
   </div>
@@ -380,46 +347,34 @@
   }
 
   /* Volume Selector Cluster */
-  .volume-selector-cluster {
+  /* Unified Volume Selector Dropdown */
+  .volume-dropdown-container {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: #0B0E14;
-    padding: 3px;
-    border-radius: 8px;
-    border: 1px solid rgba(88, 66, 55, 0.35);
-    position: relative;
   }
-  .volume-chip {
+  .volume-dropdown-trigger {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 3px 10px;
-    border-radius: 6px;
-    background: transparent;
-    border: 1px solid transparent;
-    color: #8B949E;
+    border-radius: 8px;
+    background: #191C22;
+    border: 1px solid rgba(88, 66, 55, 0.4);
+    color: #F0F6FC;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
     text-align: left;
   }
-  .volume-chip:hover {
-    background: #1D2026;
-    color: #F0F6FC;
-  }
-  .volume-chip.active {
+  .volume-dropdown-trigger:hover, .volume-dropdown-trigger.open {
     background: #272A31;
-    color: #F0F6FC;
-    border-color: rgba(249, 115, 22, 0.5);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    border-color: #F97316;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
   }
   .drive-icon {
     font-size: 17px;
     color: #F97316;
-  }
-  .volume-chip:not(.active) .drive-icon {
-    color: #8B949E;
   }
   .drive-meta {
     display: flex;
@@ -449,7 +404,7 @@
   .gauge-bar {
     width: 44px;
     height: 4px;
-    background: #191C22;
+    background: #101319;
     border-radius: 2px;
     overflow: hidden;
   }
@@ -463,41 +418,25 @@
     font-size: 0.5625rem;
     color: #8B949E;
   }
-
-  /* Multi-disk Dropdown Menu */
-  .disks-dropdown-wrapper {
-    position: relative;
-  }
-  .disks-dropdown-trigger {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    background: #191C22;
-    border: 1px solid rgba(88, 66, 55, 0.35);
+  .dropdown-caret {
+    font-size: 16px;
     color: #8B949E;
-    font-size: 0.625rem;
-    cursor: pointer;
-    transition: all 0.15s;
+    margin-left: 2px;
+    transition: transform 0.15s;
   }
-  .disks-dropdown-trigger:hover, .disks-dropdown-trigger.open {
-    color: #F0F6FC;
-    border-color: #F97316;
-    background: #272A31;
-  }
-  .dropdown-arrow {
-    font-size: 14px;
+  .volume-dropdown-trigger:hover .dropdown-caret, .volume-dropdown-trigger.open .dropdown-caret {
+    color: #F97316;
   }
   .disks-dropdown-menu {
     position: absolute;
     top: calc(100% + 6px);
-    left: 0;
-    width: 260px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 290px;
     background: #161B22;
     border: 1px solid rgba(249, 115, 22, 0.4);
     border-radius: 8px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
     padding: 4px;
     z-index: 100;
     display: flex;
@@ -563,6 +502,9 @@
     justify-content: space-between;
     font-size: 0.5625rem;
     color: #8B949E;
+  }
+  .pct-tag {
+    color: #14B8A6;
   }
   .checkmark {
     font-size: 14px;
