@@ -89,7 +89,7 @@
     </div>
   </div>
 
-  <!-- Center: Volume Selector Dropdown (All Disks in a Clean Dropdown) -->
+  <!-- Center: Volume Selector Dropdown (All Disks in a Single Clean Line) -->
   <div class="volume-dropdown-container">
     <button
       class="volume-dropdown-trigger"
@@ -100,20 +100,14 @@
       <span class="material-symbols-outlined drive-icon">
         {activeVol?.is_removable ? 'usb' : 'hard_drive'}
       </span>
-      <div class="drive-meta">
-        <div class="drive-row">
-          <span class="drive-title">{activeVol?.name || 'Macintosh HD'}</span>
-          <span class="drive-type">({activeVol?.is_removable ? 'External' : 'Internal SSD'})</span>
-        </div>
-        <div class="gauge-row">
-          <div class="gauge-bar">
-            <div class="gauge-fill" style="width: {activePct}%"></div>
-          </div>
-          <span class="gauge-label font-mono">
-            {formatBytes(activeVol?.used_bytes ?? 0, appState.useBinaryUnits)} / {formatBytes(activeVol?.total_bytes ?? 0, appState.useBinaryUnits)}
-          </span>
-        </div>
+      <span class="drive-title">{activeVol?.name || 'Macintosh HD'}</span>
+      <span class="drive-type-badge font-mono">{activeVol?.is_removable ? 'USB' : 'SSD'}</span>
+      <div class="gauge-bar">
+        <div class="gauge-fill" style="width: {activePct}%"></div>
       </div>
+      <span class="gauge-label font-mono">
+        {formatBytes(activeVol?.used_bytes ?? 0, appState.useBinaryUnits)} / {formatBytes(activeVol?.total_bytes ?? 0, appState.useBinaryUnits)}
+      </span>
       <span class="material-symbols-outlined dropdown-caret">
         {showDisksDropdown ? 'expand_less' : 'unfold_more'}
       </span>
@@ -346,8 +340,7 @@
     padding: 2px 4px;
   }
 
-  /* Volume Selector Cluster */
-  /* Unified Volume Selector Dropdown */
+  /* Unified Volume Selector Dropdown (Single Line) */
   .volume-dropdown-container {
     position: relative;
     display: flex;
@@ -356,16 +349,16 @@
   .volume-dropdown-trigger {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 3px 10px;
-    border-radius: 8px;
+    gap: 7px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
     background: #191C22;
     border: 1px solid rgba(88, 66, 55, 0.4);
     color: #F0F6FC;
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
-    text-align: left;
   }
   .volume-dropdown-trigger:hover, .volume-dropdown-trigger.open {
     background: #272A31;
@@ -373,36 +366,26 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
   }
   .drive-icon {
-    font-size: 17px;
+    font-size: 16px;
     color: #F97316;
-  }
-  .drive-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-  .drive-row {
-    display: flex;
-    align-items: center;
-    gap: 4px;
   }
   .drive-title {
     font-family: var(--font-sans);
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: inherit;
   }
-  .drive-type {
-    font-size: 0.625rem;
+  .drive-type-badge {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
     color: #8B949E;
-  }
-  .gauge-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    background: #101319;
+    padding: 1px 4px;
+    border-radius: 3px;
+    border: 1px solid rgba(88, 66, 55, 0.35);
   }
   .gauge-bar {
-    width: 44px;
+    width: 48px;
     height: 4px;
     background: #101319;
     border-radius: 2px;
@@ -415,7 +398,7 @@
   }
   .gauge-label {
     font-family: var(--font-mono);
-    font-size: 0.5625rem;
+    font-size: 0.625rem;
     color: #8B949E;
   }
   .dropdown-caret {

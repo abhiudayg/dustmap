@@ -67,9 +67,10 @@
   // --- Real Dynamic Donut Calculations ---
   const CIRCUMFERENCE = 578.05; // 2 * pi * 92
   const topCategories = $derived.by(() => {
-    const list = appState.activeFilter === 'cache' && appState.cacheEntries.length > 0 
+    // When inside a subfolder, always show that subfolder's children; only use global cache at root
+    const list = appState.activeFilter === 'cache' && appState.cacheEntries.length > 0 && appState.breadcrumb.length <= 1
       ? appState.cacheEntries 
-      : appState.currentChildren;
+      : filteredChildren;
     const sorted = [...list]
       .sort((a, b) => getEntrySize(b) - getEntrySize(a));
     const totalAccounted = sorted.reduce((sum, e) => sum + getEntrySize(e), 0) || 1;
@@ -104,6 +105,9 @@
   const usedVolumeBytes = $derived(vol?.used_bytes ?? 0);
   const freeVolumeBytes = $derived(vol?.available_bytes ?? 0);
   const usedPct = $derived(usagePercent(usedVolumeBytes, totalVolumeBytes));
+  const currentScopeTotal = $derived(
+    filteredChildren.reduce((sum, e) => sum + getEntrySize(e), 0)
+  );
 
   $effect(() => {
     if (!container) return;
@@ -307,17 +311,31 @@
 
           <!-- Center Readout Badge inside donut hole -->
           <div class="donut-center-readout">
-            <span class="readout-apfs font-mono">{vol?.fs_type || 'APFS'} VOLUME</span>
-            <span class="readout-size font-mono">
-              {formatBytes(usedVolumeBytes, appState.useBinaryUnits)}
-            </span>
-            <span class="readout-used font-mono">
-              USED OF {formatBytes(totalVolumeBytes, appState.useBinaryUnits)} ({usedPct}%)
-            </span>
-            <div class="readout-free font-mono">
-              <span class="free-dot"></span>
-              <span>{formatBytes(freeVolumeBytes, appState.useBinaryUnits)} Free Space</span>
-            </div>
+            {#if appState.breadcrumb.length > 1}
+              <span class="readout-apfs font-mono">{appState.breadcrumb.at(-1)?.name.toUpperCase() || 'FOLDER'}</span>
+              <span class="readout-size font-mono">
+                {formatBytes(currentScopeTotal, appState.useBinaryUnits)}
+              </span>
+              <span class="readout-used font-mono">
+                {filteredChildren.length.toLocaleString()} {filteredChildren.length === 1 ? 'ITEM' : 'ITEMS'}
+              </span>
+              <div class="readout-free font-mono">
+                <span class="free-dot"></span>
+                <span>{((currentScopeTotal / (totalVolumeBytes || 1)) * 100).toFixed(1)}% of volume</span>
+              </div>
+            {:else}
+              <span class="readout-apfs font-mono">{vol?.fs_type || 'APFS'} VOLUME</span>
+              <span class="readout-size font-mono">
+                {formatBytes(usedVolumeBytes, appState.useBinaryUnits)}
+              </span>
+              <span class="readout-used font-mono">
+                USED OF {formatBytes(totalVolumeBytes, appState.useBinaryUnits)} ({usedPct}%)
+              </span>
+              <div class="readout-free font-mono">
+                <span class="free-dot"></span>
+                <span>{formatBytes(freeVolumeBytes, appState.useBinaryUnits)} Free Space</span>
+              </div>
+            {/if}
           </div>
         </div>
 

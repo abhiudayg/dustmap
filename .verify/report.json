@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-20T23:21:14Z",
+  "generated_at": "2026-10-20T23:32:11Z",
   "git": {
-    "commit": "6c0189cc212e41d6020022bc36d04621bb8dd370",
+    "commit": "8422b0bde0d585624454aa8274a22beacd0decb3",
     "branch": "main"
   },
   "summary": {
@@ -29,7 +29,7 @@
       "severity": "medium",
       "title": "Code formatting is clean",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -47,7 +47,7 @@
       "severity": "critical",
       "title": "All unit and integration tests pass",
       "status": "pass",
-      "duration_s": 3,
+      "duration_s": 1,
       "detail": ""
     },
     {
@@ -56,7 +56,7 @@
       "severity": "critical",
       "title": "Svelte 5 frontend builds with Vite and Bun",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 2,
       "detail": ""
     },
     {
@@ -92,7 +92,7 @@
       "severity": "high",
       "title": "System and external volume enumeration",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -101,7 +101,7 @@
       "severity": "high",
       "title": "TOML cleanup rule schema parsing and validation",
       "status": "pass",
-      "duration_s": 0,
+      "duration_s": 1,
       "detail": ""
     },
     {
@@ -155,7 +155,7 @@
       "severity": "critical",
       "title": "SIP and system protected directories blocked from deletion",
       "status": "pass",
-      "duration_s": 0,
+      "duration_s": 1,
       "detail": ""
     },
     {
@@ -200,7 +200,7 @@
       "severity": "critical",
       "title": "Symlink cycle loop does not hang or crash scanner",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {

@@ -1,40 +1,59 @@
-# 🗺️ DustMap
+<p align="center">
+  <img src="docs/logo.png" width="128" height="128" alt="DustMap Logo" />
+</p>
 
-> **Blazing-fast, transparent disk space analyzer and conservative cleaner for macOS.**  
-> *See where your disk breathes. Reclaim what you don't need.*
+<h1 align="center">🗺️ DustMap</h1>
 
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey.svg)]()
-[![Rust](https://img.shields.io/badge/rust-1.80%2B-orange.svg)]()
+<p align="center">
+  <strong>Blazing-fast, transparent disk space analyzer and conservative cleaner for macOS.</strong><br>
+  <em>See where your disk breathes. Reclaim what you don't need.</em>
+</p>
 
-DustMap is a free, open-source macOS storage tool built for engineers, power users, and anyone with mysterious "System Data" filling their disk. Built with Rust and Tauri 2, it scans millions of filesystem entries in seconds, renders interactive squarified treemaps, and provides an explainable, safe, Trash-first cleaner.
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey.svg" alt="Platform">
+  <img src="https://img.shields.io/badge/rust-1.80%2B-orange.svg" alt="Rust">
+  <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/docs-Architecture-teal.svg" alt="Architecture Docs"></a>
+</p>
+
+DustMap is a free, open-source macOS storage tool built for engineers, power users, and anyone with mysterious "System Data" filling their disk. Built with Rust and Tauri 2, it scans millions of filesystem entries in seconds, renders interactive sector donuts and squarified sector maps, and provides an explainable, safe, Trash-first cleaner.
 
 ---
 
 ## 📸 Screenshots
 
-### 1. Storage Volume Dashboard
-*Telemetry overview displaying allocated vs. free space across APFS containers with zero scanning lag.*
-![Storage Volume Dashboard](docs/screenshots/screenshot-01-dashboard.png)
+### 1. Radar Inode Sweep & Fast Initializer HUD
+*Real-time radar sweep visualizing concurrent Rayon worker threads indexing filesystem nodes.*
+![Radar Inode Sweep HUD](docs/screenshots/01-radar-scan-hud.png)
 
-### 2. Donut Sector Breakdown & Top Space Consumers
-*Dynamic category arcs, space gauges, and one-click cache purge inspection.*
-![Donut Sector Breakdown](docs/screenshots/screenshot-02-donut.png)
+### 2. Obsidian Telemetry Dashboard & Donut Sector Breakdown
+*Dynamic category arcs, APFS physical block gauges, and high-density space consumer inspector.*
+![Donut Sector Breakdown](docs/screenshots/02-telemetry-donut-dashboard.png)
 
-### 3. Proportional Squarified Treemap
-*Visualizing deep folder hierarchies with category coloring and macOS Finder integration.*
-![Squarified Treemap](docs/screenshots/screenshot-03-treemap.png)
+### 3. Trash-First Safety Gate & Confirm Deletion Protocol
+*Surgical disk reclaim modal with two-step verification, safety checks, and macOS Trash routing.*
+![Trash-First Safety Gate](docs/screenshots/03-trash-safety-confirm-modal.png)
 
 ---
 
 ## 🎯 Key Capabilities
 
 - ⚡ **Blazing Fast Traversal:** Traverses deep file trees using bounded parallel I/O and compact in-memory indexes.
-- 📐 **Squarified Treemap:** Visualizes directory sizes proportionally with instant category coloring (Developer, Applications, Caches, Hidden).
+- 📐 **Interactive Donut & Squarified Treemap:** Visualizes directory sizes proportionally with instant category coloring (Developer, Applications, Caches, Hidden).
 - 🔍 **Hidden & System Data Detection:** Uncovers hidden files (`.cache`, `.cargo`, `.npm`, `DerivedData`) and reconciles volume usage.
-- 💾 **External Drives & APFS Volumes:** Seamlessly scan and navigate external SSDs, USB drives, and internal APFS containers.
+- 💾 **Unified Disks Dropdown:** Seamlessly switch between external SSDs, USB drives, and internal APFS containers from a single menu bar dropdown.
 - 🛡️ **Conservative, Trash-First Cleaner:** Every recommendation explains *what* it removes, *why* it is regenerable, and routes to macOS Trash by default.
 - 🔒 **Zero Telemetry & Completely Offline:** No analytics, no phone-home, no accounts. 100% auditable open-source code.
+
+---
+
+## 🏛️ Architecture & Verification
+
+Detailed system design, memory layout, and security models are documented in [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md).
+
+- **Core Engine:** Written in pure Rust (`dustmap-core`) with flat memory indexes and $O(N)$ post-order aggregation.
+- **Frontend:** Built with Svelte 5 runes (`$state`, `$derived`, `$effect`) and Vite.
+- **Verification Suite:** 23 automated quality gates and adversarial tests (`.verify/run.sh`) covering path traversal, SIP protection, and symlink cycle immunity.
 
 ---
 
