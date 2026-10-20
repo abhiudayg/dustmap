@@ -11,6 +11,22 @@ DustMap is a free, open-source macOS storage tool built for engineers, power use
 
 ---
 
+## 📸 Screenshots
+
+### 1. Storage Volume Dashboard
+*Telemetry overview displaying allocated vs. free space across APFS containers with zero scanning lag.*
+![Storage Volume Dashboard](docs/screenshots/screenshot-01-dashboard.png)
+
+### 2. Donut Sector Breakdown & Top Space Consumers
+*Dynamic category arcs, space gauges, and one-click cache purge inspection.*
+![Donut Sector Breakdown](docs/screenshots/screenshot-02-donut.png)
+
+### 3. Proportional Squarified Treemap
+*Visualizing deep folder hierarchies with category coloring and macOS Finder integration.*
+![Squarified Treemap](docs/screenshots/screenshot-03-treemap.png)
+
+---
+
 ## 🎯 Key Capabilities
 
 - ⚡ **Blazing Fast Traversal:** Traverses deep file trees using bounded parallel I/O and compact in-memory indexes.
