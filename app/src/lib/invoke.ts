@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { VolumeInfo, IpcScanSummary, IpcChildrenResponse, IpcDeleteResult } from './types';
+import type { VolumeInfo, IpcScanSummary, IpcChildrenResponse, IpcDeleteResult, IpcEntry } from './types';
 
 export async function listVolumes(): Promise<VolumeInfo[]> {
   return invoke<VolumeInfo[]>('list_volumes_cmd');
@@ -15,6 +15,14 @@ export async function scanSummary(scanId: string): Promise<IpcScanSummary> {
 
 export async function listChildren(scanId: string, entryId: number): Promise<IpcChildrenResponse> {
   return invoke<IpcChildrenResponse>('list_children', { scanId, entryId });
+}
+
+export async function listCacheEntries(scanId: string): Promise<IpcEntry[]> {
+  return invoke<IpcEntry[]>('list_cache_entries', { scanId });
+}
+
+export async function revealInFinder(path: string): Promise<void> {
+  return invoke<void>('reveal_in_finder', { path });
 }
 
 export async function deletePath(

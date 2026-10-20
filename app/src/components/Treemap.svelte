@@ -1,23 +1,36 @@
 <script lang="ts">
-  import { appState, navigateTo, startCurrentVolumeScan, getEntrySize } from '../lib/store.svelte';
+  import { appState, navigateTo, startCurrentVolumeScan, getEntrySize, goBack, goForward, fetchCacheEntries } from '../lib/store.svelte';
   import { computeTreemap, type TreemapRect } from '../lib/treemap';
   import { formatBytes, colorForEntry, usagePercent } from '../lib/format';
+  import type { IpcEntry } from '../lib/types';
 
   let container: HTMLDivElement;
   let width = $state(0);
   let height = $state(0);
   let hoveredId = $state<number | null>(null);
 
+  // Fetch cache entries when cache filter is activated
+  $effect(() => {
+    if (appState.activeFilter === 'cache' && appState.scanId && appState.cacheEntries.length === 0) {
+      fetchCacheEntries();
+    }
+  });
+
   // Filtered children based on active filter and search query
   const filteredChildren = $derived.by(() => {
-    let list = appState.currentChildren;
+    let list: IpcEntry[];
+    if (appState.activeFilter === 'cache' && appState.cacheEntries.length > 0) {
+      list = [...appState.cacheEntries];
+    } else {
+      list = [...appState.currentChildren];
+    }
 
     if (appState.searchQuery.trim()) {
       const q = appState.searchQuery.toLowerCase();
       list = list.filter(e => e.name.toLowerCase().includes(q) || (e.path && e.path.toLowerCase().includes(q)));
     }
 
-    if (appState.activeFilter === 'cache') {
+    if (appState.activeFilter === 'cache' && appState.cacheEntries.length === 0) {
       list = list.filter(e => {
         const n = e.name.toLowerCase();
         return n.includes('cache') || n.includes('tmp') || n.includes('deriveddata') || n.includes('log');
@@ -47,14 +60,17 @@
   );
 
   function handleClick(rect: TreemapRect) {
-    const entry = appState.currentChildren.find(e => e.id === rect.node.id);
+    const entry = filteredChildren.find(e => e.id === rect.node.id) || appState.currentChildren.find(e => e.id === rect.node.id);
     if (entry) navigateTo(entry);
   }
 
   // --- Real Dynamic Donut Calculations ---
   const CIRCUMFERENCE = 578.05; // 2 * pi * 92
   const topCategories = $derived.by(() => {
-    const sorted = [...appState.currentChildren]
+    const list = appState.activeFilter === 'cache' && appState.cacheEntries.length > 0 
+      ? appState.cacheEntries 
+      : appState.currentChildren;
+    const sorted = [...list]
       .sort((a, b) => getEntrySize(b) - getEntrySize(a));
     const totalAccounted = sorted.reduce((sum, e) => sum + getEntrySize(e), 0) || 1;
 
@@ -105,6 +121,26 @@
   <!-- Sub-Header: Breadcrumb & Filter Switchers -->
   <div class="sub-header">
     <div class="breadcrumb-trail">
+      <!-- Back / Forward navigation controls -->
+      <div class="nav-arrows">
+        <button
+          class="nav-btn"
+          disabled={appState.historyIdx <= 0 && appState.breadcrumb.length <= 1}
+          onclick={goBack}
+          title="Go back"
+        >
+          <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <button
+          class="nav-btn"
+          disabled={appState.historyIdx >= appState.history.length - 1}
+          onclick={goForward}
+          title="Go forward"
+        >
+          <span class="material-symbols-outlined">arrow_forward</span>
+        </button>
+      </div>
+
       <span class="material-symbols-outlined icon-mode">
         {appState.viewMode === 'donut' ? 'pie_chart' : 'grid_view'}
       </span>
@@ -369,30 +405,16 @@
     {/if}
   </div>
 
-  <!-- Quick Action Bar Below Visualization (Stitch Screen 1) -->
+  <!-- Scope Info Bar Below Visualization (Stitch Screen 1) -->
   <div class="quick-action-bar">
     <div class="action-bar-left">
-      <button
-        class="action-pill-btn"
-        onclick={() => appState.viewMode = appState.viewMode === 'donut' ? 'treemap' : 'donut'}
-      >
-        <span class="material-symbols-outlined text-primary">zoom_in</span>
-        <span>{appState.viewMode === 'donut' ? 'Inspect Treemap' : 'Inspect Donut'}</span>
-      </button>
-      <button
-        class="action-pill-btn"
-        onclick={() => {
-          navigator.clipboard.writeText(JSON.stringify(appState.summary, null, 2));
-          alert('Scan telemetry report copied to clipboard!');
-        }}
-      >
-        <span class="material-symbols-outlined">ios_share</span>
-        <span>Export Report</span>
-      </button>
-    </div>
-    <div class="action-bar-right">
       <span class="scope-tag font-mono">
         Active Scope: {appState.breadcrumb.at(-1)?.name || '/'}
+      </span>
+    </div>
+    <div class="action-bar-right">
+      <span class="scope-meta font-mono">
+        {treemapNodes.length} items rendered
       </span>
     </div>
   </div>
@@ -427,6 +449,38 @@
     gap: 6px;
     font-size: 0.75rem;
     color: #8B949E;
+  }
+  .nav-arrows {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-right: 4px;
+  }
+  .nav-btn {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #191C22;
+    border: 1px solid rgba(88, 66, 55, 0.35);
+    border-radius: 4px;
+    color: #8B949E;
+    cursor: pointer;
+    transition: all 0.12s;
+    padding: 0;
+  }
+  .nav-btn:hover:not(:disabled) {
+    background: #272A31;
+    color: #F0F6FC;
+    border-color: #F97316;
+  }
+  .nav-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+  .nav-btn span {
+    font-size: 14px;
   }
   .icon-mode {
     font-size: 16px;
@@ -834,8 +888,8 @@
 
   /* Quick Action Bar Below Visualization (Stitch Screen 1) */
   .quick-action-bar {
-    height: 34px;
-    min-height: 34px;
+    height: 28px;
+    min-height: 28px;
     background: #0B0E14;
     border-top: 1px solid rgba(88, 66, 55, 0.25);
     display: flex;
@@ -843,35 +897,14 @@
     justify-content: space-between;
     padding: 0 12px;
   }
-  .action-bar-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .action-pill-btn {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: #191C22;
-    border: 1px solid rgba(88, 66, 55, 0.35);
-    color: #F0F6FC;
-    font-family: var(--font-sans);
-    font-size: 0.6875rem;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .action-pill-btn:hover {
-    background: #272A31;
-    border-color: #14B8A6;
-  }
-  .action-pill-btn span {
-    font-size: 14px;
-  }
   .scope-tag {
     font-family: var(--font-mono);
     font-size: 0.625rem;
     color: #8B949E;
+  }
+  .scope-meta {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: #14B8A6;
   }
 </style>

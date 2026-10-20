@@ -142,6 +142,46 @@ pub async fn list_children(
 }
 
 #[tauri::command]
+pub async fn reveal_in_finder(path: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| e.to_string())?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let p = std::path::PathBuf::from(&path);
+        let dir = if p.is_dir() {
+            p
+        } else {
+            p.parent().unwrap_or(&p).to_path_buf()
+        };
+        open::that(dir).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+}
+
+#[tauri::command]
+pub async fn list_cache_entries(
+    scan_id: String,
+    state: State<'_, SharedScanStore>,
+) -> Result<Vec<IpcEntry>, String> {
+    let store = state.lock().map_err(|e| e.to_string())?;
+    let result = store.scans.get(&scan_id).ok_or("scan not found")?;
+    let cache_ids = result.index.find_cache_entries();
+    let entries = cache_ids
+        .into_iter()
+        .take(100)
+        .filter_map(|id| entry_to_ipc(result, id))
+        .collect();
+    Ok(entries)
+}
+
+#[tauri::command]
 pub async fn delete_path(
     path: String,
     permanent: bool,

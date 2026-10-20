@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { appState, selectVolume, rescanCurrentVolume, loadVolumes, toggleMetric, startCurrentVolumeScan } from '../lib/store.svelte';
+  import { appState, selectVolume, rescanCurrentVolume, loadVolumes, exportReport, startCurrentVolumeScan, fetchCacheEntries } from '../lib/store.svelte';
   import { formatBytes, usagePercent } from '../lib/format';
   import { onMount } from 'svelte';
 
   let searchInput: HTMLInputElement;
+  let showDisksDropdown = $state(false);
 
   onMount(() => {
     loadVolumes();
@@ -19,26 +20,31 @@
         e.preventDefault();
         searchInput?.focus();
       }
+      if (e.key === 'Escape') {
+        showDisksDropdown = false;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   });
+
+  async function handlePurgeCacheClick() {
+    if (appState.activeFilter === 'cache') {
+      appState.activeFilter = 'all';
+    } else {
+      appState.activeFilter = 'cache';
+      if (appState.scanId && appState.cacheEntries.length === 0) {
+        await fetchCacheEntries();
+      }
+    }
+  }
 </script>
 
 <!-- Stitch Unified TopBar: macOS Titlebar & Navigation (44px) -->
 <header class="stitch-header" data-tauri-drag-region>
-  <!-- Left: Traffic Lights & Branding & Search -->
+  <!-- Left: Reserved padding for native macOS Traffic Lights (76px) + Branding + Search -->
   <div class="header-left">
-    <!-- Traffic lights -->
-    <div class="traffic-lights">
-      <span class="light close" title="Close"></span>
-      <span class="light min" title="Minimize"></span>
-      <span class="light max" title="Fullscreen"></span>
-    </div>
-
-    <div class="header-divider"></div>
-
     <!-- App Brand -->
     <div class="brand-group">
       <div class="brand-badge-icon">
@@ -48,6 +54,8 @@
       <span class="brand-name">DustMap</span>
       <span class="brand-ver">v0.1.0</span>
     </div>
+
+    <div class="header-divider"></div>
 
     <!-- Quick Search Bar -->
     <div class="search-container">
@@ -67,36 +75,119 @@
     </div>
   </div>
 
-  <!-- Center: Volume Selector Chips Row -->
+  <!-- Center: Volume Selector Cluster (Handles 1 to 10+ Disks Gracefully) -->
   <div class="volume-selector-cluster">
-    {#each appState.volumes as vol}
-      {@const pct = usagePercent(vol.used_bytes, vol.total_bytes)}
-      {@const active = appState.currentVolume?.mount_point === vol.mount_point}
+    {#if appState.volumes.length <= 2}
+      <!-- 1 or 2 disks: direct chips -->
+      {#each appState.volumes as vol}
+        {@const pct = usagePercent(vol.used_bytes, vol.total_bytes)}
+        {@const active = appState.currentVolume?.mount_point === vol.mount_point}
+        <button
+          class="volume-chip"
+          class:active
+          onclick={() => selectVolume(vol, false)}
+          title="Volume: {vol.name || vol.mount_point} ({vol.fs_type})"
+        >
+          <span class="material-symbols-outlined drive-icon">
+            {vol.is_removable ? 'usb' : 'hard_drive'}
+          </span>
+          <div class="drive-meta">
+            <div class="drive-row">
+              <span class="drive-title">{vol.name || 'Macintosh HD'}</span>
+              <span class="drive-type">({vol.is_removable ? 'External' : 'Internal SSD'})</span>
+            </div>
+            <div class="gauge-row">
+              <div class="gauge-bar">
+                <div class="gauge-fill" style="width: {pct}%"></div>
+              </div>
+              <span class="gauge-label font-mono">
+                {formatBytes(vol.used_bytes, appState.useBinaryUnits)} / {formatBytes(vol.total_bytes, appState.useBinaryUnits)}
+              </span>
+            </div>
+          </div>
+        </button>
+      {/each}
+    {:else}
+      <!-- 3 to 10+ disks: Active Disk prominent chip + Dropdown Menu -->
+      {@const activeVol = appState.currentVolume || appState.volumes[0]}
+      {@const activePct = activeVol ? usagePercent(activeVol.used_bytes, activeVol.total_bytes) : 0}
+
       <button
-        class="volume-chip"
-        class:active
-        onclick={() => selectVolume(vol, false)}
-        title="Volume: {vol.name || vol.mount_point} ({vol.fs_type})"
+        class="volume-chip active"
+        onclick={() => showDisksDropdown = !showDisksDropdown}
+        title="Active Volume: {activeVol?.name} — click to view all {appState.volumes.length} disks"
       >
         <span class="material-symbols-outlined drive-icon">
-          {vol.is_removable ? 'usb' : 'hard_drive'}
+          {activeVol?.is_removable ? 'usb' : 'hard_drive'}
         </span>
         <div class="drive-meta">
           <div class="drive-row">
-            <span class="drive-title">{vol.name || 'Macintosh HD'}</span>
-            <span class="drive-type">({vol.is_removable ? 'External' : 'Internal SSD'})</span>
+            <span class="drive-title">{activeVol?.name || 'Macintosh HD'}</span>
+            <span class="drive-type">({activeVol?.is_removable ? 'External' : 'Internal SSD'})</span>
           </div>
           <div class="gauge-row">
             <div class="gauge-bar">
-              <div class="gauge-fill" style="width: {pct}%"></div>
+              <div class="gauge-fill" style="width: {activePct}%"></div>
             </div>
             <span class="gauge-label font-mono">
-              {formatBytes(vol.used_bytes, appState.useBinaryUnits)} / {formatBytes(vol.total_bytes, appState.useBinaryUnits)}
+              {formatBytes(activeVol?.used_bytes ?? 0, appState.useBinaryUnits)} / {formatBytes(activeVol?.total_bytes ?? 0, appState.useBinaryUnits)}
             </span>
           </div>
         </div>
       </button>
-    {/each}
+
+      <!-- Multi-disk dropdown trigger button -->
+      <div class="disks-dropdown-wrapper">
+        <button
+          class="disks-dropdown-trigger font-mono"
+          class:open={showDisksDropdown}
+          onclick={() => showDisksDropdown = !showDisksDropdown}
+          title="Switch among {appState.volumes.length} connected volumes"
+        >
+          <span>+{appState.volumes.length - 1} Disks</span>
+          <span class="material-symbols-outlined dropdown-arrow">
+            {showDisksDropdown ? 'expand_less' : 'expand_more'}
+          </span>
+        </button>
+
+        {#if showDisksDropdown}
+          <div class="disks-dropdown-menu">
+            <div class="dropdown-header font-mono">
+              <span>CONNECTED VOLUMES ({appState.volumes.length})</span>
+            </div>
+            {#each appState.volumes as vol}
+              {@const isCur = appState.currentVolume?.mount_point === vol.mount_point}
+              {@const pct = usagePercent(vol.used_bytes, vol.total_bytes)}
+              <button
+                class="dropdown-disk-item"
+                class:active={isCur}
+                onclick={() => {
+                  selectVolume(vol, false);
+                  showDisksDropdown = false;
+                }}
+              >
+                <span class="material-symbols-outlined disk-icon">
+                  {vol.is_removable ? 'usb' : 'hard_drive'}
+                </span>
+                <div class="disk-info">
+                  <div class="disk-name-row">
+                    <span class="disk-name">{vol.name || vol.mount_point}</span>
+                    <span class="disk-fs font-mono">{vol.fs_type}</span>
+                  </div>
+                  <div class="disk-stats-row font-mono">
+                    <span>{formatBytes(vol.used_bytes, appState.useBinaryUnits)} / {formatBytes(vol.total_bytes, appState.useBinaryUnits)}</span>
+                    <span>({pct}% used)</span>
+                  </div>
+                </div>
+                {#if isCur}
+                  <span class="material-symbols-outlined checkmark">check</span>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+    {/if}
   </div>
 
   <!-- Right: Actions -->
@@ -104,13 +195,12 @@
     <!-- Purge Cache / Quick Clean -->
     <button
       class="btn-purge"
-      onclick={() => {
-        appState.activeFilter = appState.activeFilter === 'cache' ? 'all' : 'cache';
-      }}
-      title="Filter / highlight purgeable developer caches"
+      class:active={appState.activeFilter === 'cache'}
+      onclick={handlePurgeCacheClick}
+      title="Filter / highlight purgeable developer caches & build artifacts"
     >
       <span class="material-symbols-outlined icon-mop">mop</span>
-      <span>Purge Cache</span>
+      <span>{appState.activeFilter === 'cache' ? 'Showing Caches' : 'Purge Cache'}</span>
     </button>
 
     <!-- Rescan Volume (Primary Accent) -->
@@ -135,28 +225,14 @@
 
     <div class="header-divider"></div>
 
-    <!-- Metric Toggle (Allocated Physical vs Logical Raw) -->
+    <!-- Export Telemetry & Disk Report -->
     <button
-      class="btn-icon-square"
-      onclick={toggleMetric}
-      title="Toggle Metric: {appState.metric === 'allocated' ? 'Allocated Physical Blocks' : 'Logical Raw Bytes'}"
+      class="btn-export"
+      onclick={exportReport}
+      title="Export Telemetry & Storage Report to Clipboard"
     >
-      <span class="metric-flag" class:alloc={appState.metric === 'allocated'}>
-        {appState.metric === 'allocated' ? 'ALLOC' : 'RAW'}
-      </span>
-    </button>
-
-    <!-- Tune / Filter Rules -->
-    <button
-      class="btn-icon-square"
-      onclick={() => {
-        appState.viewMode = appState.viewMode === 'donut' ? 'treemap' : 'donut';
-      }}
-      title="Toggle View: {appState.viewMode === 'donut' ? 'Switch to Treemap' : 'Switch to Donut Ring'}"
-    >
-      <span class="material-symbols-outlined">
-        {appState.viewMode === 'donut' ? 'grid_view' : 'donut_large'}
-      </span>
+      <span class="material-symbols-outlined icon-export">ios_share</span>
+      <span>Export</span>
     </button>
   </div>
 </header>
@@ -171,10 +247,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
+    padding-left: 78px; /* Reserves clear native space for macOS Traffic Lights */
+    padding-right: 12px;
     user-select: none;
     z-index: 50;
     gap: 8px;
+    position: relative;
   }
 
   .header-left {
@@ -182,38 +260,6 @@
     align-items: center;
     gap: 10px;
     flex-shrink: 0;
-  }
-
-  /* macOS Traffic Lights */
-  .traffic-lights {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-left: 2px;
-    padding-right: 4px;
-  }
-  .light {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    transition: opacity 0.15s;
-  }
-  .light:hover {
-    opacity: 0.8;
-  }
-  .light.close {
-    background: #FF5F56;
-    border-color: #E0443E;
-  }
-  .light.min {
-    background: #FFBD2E;
-    border-color: #DEA123;
-  }
-  .light.max {
-    background: #27C93F;
-    border-color: #1AAB29;
   }
 
   .header-divider {
@@ -280,7 +326,6 @@
     position: relative;
     display: flex;
     align-items: center;
-    margin-left: 4px;
   }
   .search-icon {
     position: absolute;
@@ -290,7 +335,7 @@
     pointer-events: none;
   }
   .search-input {
-    width: 220px;
+    width: 200px;
     height: 28px;
     background: #191C22;
     border: 1px solid rgba(88, 66, 55, 0.35);
@@ -309,7 +354,7 @@
   .search-input:focus {
     border-color: #14B8A6;
     box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
-    width: 260px;
+    width: 240px;
   }
   .search-kbd {
     position: absolute;
@@ -334,7 +379,7 @@
     padding: 2px 4px;
   }
 
-  /* Volume Selector Chips Row */
+  /* Volume Selector Cluster */
   .volume-selector-cluster {
     display: flex;
     align-items: center;
@@ -343,14 +388,13 @@
     padding: 3px;
     border-radius: 8px;
     border: 1px solid rgba(88, 66, 55, 0.35);
-    max-width: 460px;
-    overflow-x: auto;
+    position: relative;
   }
   .volume-chip {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 10px;
+    padding: 3px 10px;
     border-radius: 6px;
     background: transparent;
     border: 1px solid transparent;
@@ -371,7 +415,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   }
   .drive-icon {
-    font-size: 18px;
+    font-size: 17px;
     color: #F97316;
   }
   .volume-chip:not(.active) .drive-icon {
@@ -403,7 +447,7 @@
     gap: 6px;
   }
   .gauge-bar {
-    width: 48px;
+    width: 44px;
     height: 4px;
     background: #191C22;
     border-radius: 2px;
@@ -418,6 +462,111 @@
     font-family: var(--font-mono);
     font-size: 0.5625rem;
     color: #8B949E;
+  }
+
+  /* Multi-disk Dropdown Menu */
+  .disks-dropdown-wrapper {
+    position: relative;
+  }
+  .disks-dropdown-trigger {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #191C22;
+    border: 1px solid rgba(88, 66, 55, 0.35);
+    color: #8B949E;
+    font-size: 0.625rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .disks-dropdown-trigger:hover, .disks-dropdown-trigger.open {
+    color: #F0F6FC;
+    border-color: #F97316;
+    background: #272A31;
+  }
+  .dropdown-arrow {
+    font-size: 14px;
+  }
+  .disks-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 260px;
+    background: #161B22;
+    border: 1px solid rgba(249, 115, 22, 0.4);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
+    padding: 4px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .dropdown-header {
+    padding: 6px 8px;
+    font-size: 0.5625rem;
+    color: #8B949E;
+    border-bottom: 1px solid rgba(88, 66, 55, 0.2);
+    letter-spacing: 0.05em;
+  }
+  .dropdown-disk-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: transparent;
+    border: none;
+    color: #8B949E;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.12s;
+  }
+  .dropdown-disk-item:hover {
+    background: #21262D;
+    color: #F0F6FC;
+  }
+  .dropdown-disk-item.active {
+    background: rgba(249, 115, 22, 0.12);
+    color: #F97316;
+  }
+  .disk-icon {
+    font-size: 16px;
+    color: inherit;
+  }
+  .disk-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .disk-name-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .disk-name {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: inherit;
+  }
+  .disk-fs {
+    font-size: 0.5625rem;
+    color: #8B949E;
+  }
+  .disk-stats-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.5625rem;
+    color: #8B949E;
+  }
+  .checkmark {
+    font-size: 14px;
+    color: #14B8A6;
   }
 
   /* Right Action Controls */
@@ -443,9 +592,10 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .btn-purge:hover {
+  .btn-purge:hover, .btn-purge.active {
     background: #272A31;
     border-color: #14B8A6;
+    color: #14B8A6;
   }
   .icon-mop {
     font-size: 15px;
@@ -497,30 +647,28 @@
     color: #0E1117;
   }
 
-  .btn-icon-square {
-    width: 28px;
+  .btn-export {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
     height: 28px;
     border-radius: 6px;
     background: #1D2026;
     border: 1px solid rgba(88, 66, 55, 0.35);
-    color: #8B949E;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: #F0F6FC;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.15s;
   }
-  .btn-icon-square:hover {
-    color: #F0F6FC;
+  .btn-export:hover {
     background: #272A31;
+    border-color: #F97316;
+    color: #F97316;
   }
-  .metric-flag {
-    font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    font-weight: 700;
-    color: #8B949E;
-  }
-  .metric-flag.alloc {
+  .icon-export {
+    font-size: 15px;
     color: #14B8A6;
   }
 </style>

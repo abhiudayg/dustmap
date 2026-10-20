@@ -18,6 +18,8 @@ pub fn run() {
             commands::start_scan,
             commands::scan_summary,
             commands::list_children,
+            commands::list_cache_entries,
+            commands::reveal_in_finder,
             commands::delete_path,
         ])
         .run(tauri::generate_context!())

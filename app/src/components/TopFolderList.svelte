@@ -1,9 +1,16 @@
 <script lang="ts">
-  import { appState, navigateTo, setDeleteTarget, getEntrySize } from '../lib/store.svelte';
+  import { appState, navigateTo, setDeleteTarget, getEntrySize, revealPath, fetchCacheEntries } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
   import type { IpcEntry } from '../lib/types';
 
   let sortAsc = $state(false);
+
+  // Automatically fetch disk-wide cache entries if user switches to cache filter
+  $effect(() => {
+    if (appState.activeFilter === 'cache' && appState.scanId && appState.cacheEntries.length === 0) {
+      fetchCacheEntries();
+    }
+  });
 
   // Compute category icon, color, and badge for any filesystem entry
   function getCategoryMeta(entry: IpcEntry) {
@@ -45,14 +52,19 @@
 
   // Filter and sort items
   const sorted = $derived.by(() => {
-    let list = [...appState.currentChildren];
+    let list: IpcEntry[];
+    if (appState.activeFilter === 'cache' && appState.cacheEntries.length > 0) {
+      list = [...appState.cacheEntries];
+    } else {
+      list = [...appState.currentChildren];
+    }
 
     if (appState.searchQuery.trim()) {
       const q = appState.searchQuery.toLowerCase();
       list = list.filter(e => e.name.toLowerCase().includes(q) || (e.path && e.path.toLowerCase().includes(q)));
     }
 
-    if (appState.activeFilter === 'cache') {
+    if (appState.activeFilter === 'cache' && appState.cacheEntries.length === 0) {
       list = list.filter(e => {
         const n = e.name.toLowerCase();
         return n.includes('cache') || n.includes('tmp') || n.includes('deriveddata') || n.includes('log');
@@ -179,6 +191,17 @@
 
           <!-- Right: Interactive Actions (Reveal in Finder, Move to Trash, Purge) -->
           <div class="col-actions cell-actions">
+            <button
+              class="btn-action-icon"
+              onclick={(e) => {
+                e.stopPropagation();
+                revealPath(fullPath);
+              }}
+              title="Reveal in Finder"
+            >
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+
             {#if isPurgeable}
               <button
                 class="btn-purge-pill font-mono"
@@ -191,18 +214,6 @@
                 Purge
               </button>
             {:else}
-              <button
-                class="btn-action-icon"
-                onclick={(e) => {
-                  e.stopPropagation();
-                  navigator.clipboard.writeText(fullPath);
-                  alert(`Copied path to clipboard:\n${fullPath}`);
-                }}
-                title="Copy Path"
-              >
-                <span class="material-symbols-outlined">visibility</span>
-              </button>
-
               <button
                 class="btn-action-icon delete"
                 onclick={(e) => {
@@ -229,7 +240,10 @@
       class="footer-cta"
       role="button"
       tabindex="0"
-      onclick={() => appState.activeFilter = 'all'}
+      onclick={() => {
+        appState.activeFilter = 'all';
+        appState.searchQuery = '';
+      }}
       onkeydown={(e) => e.key === 'Enter' && (appState.activeFilter = 'all')}
     >
       View All Consumers ›
@@ -327,7 +341,7 @@
     padding-right: 8px;
   }
   .col-actions {
-    width: 60px;
+    width: 76px;
     text-align: right;
   }
 

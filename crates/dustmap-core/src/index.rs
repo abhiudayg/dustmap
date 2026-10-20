@@ -166,4 +166,43 @@ impl Index {
         });
         children
     }
+
+    /// Return all discovered cache, log, and build artifact entries across the scanned tree,
+    /// sorted descending by allocated size.
+    pub fn find_cache_entries(&self) -> Vec<EntryId> {
+        let mut cache_ids = Vec::new();
+        for (i, entry) in self.entries.iter().enumerate() {
+            let n = entry.name.to_lowercase();
+            let is_cache = n.contains("cache")
+                || n == "deriveddata"
+                || n == ".cache"
+                || n.ends_with(".log")
+                || n == "logs"
+                || n == ".cargo"
+                || n == ".npm"
+                || n == ".yarn"
+                || n == ".m2"
+                || n == ".gradle"
+                || n == "coresimulator"
+                || n.contains("temp")
+                || n.contains("tmp");
+            if is_cache {
+                cache_ids.push(EntryId(i as u32));
+            }
+        }
+        cache_ids.sort_by(|a, b| {
+            let sa = self
+                .aggregates
+                .get(a.0 as usize)
+                .map(|ag| ag.allocated_total)
+                .unwrap_or(0);
+            let sb = self
+                .aggregates
+                .get(b.0 as usize)
+                .map(|ag| ag.allocated_total)
+                .unwrap_or(0);
+            sb.cmp(&sa)
+        });
+        cache_ids
+    }
 }
