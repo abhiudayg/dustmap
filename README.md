@@ -2,7 +2,7 @@
   <img src="docs/logo.png" width="128" height="128" alt="DustMap Logo" />
 </p>
 
-<h1 align="center">🗺️ DustMap</h1>
+<h1 align="center">DustMap</h1>
 
 <p align="center">
   <strong>Blazing-fast, transparent disk space analyzer and conservative cleaner for macOS.</strong><br>
@@ -70,6 +70,29 @@ dustmap/
 │   └── src/                 # Svelte 5 + TypeScript + Vite frontend
 ├── rules/                   # Community-maintained cleanup rules (TOML)
 └── fixtures/                # Deterministic test fixtures for rules & engine
+```
+
+---
+
+## 🍺 Installation via Homebrew
+
+DustMap can be installed using its official Homebrew tap:
+
+### Desktop Application (GUI)
+```bash
+brew install --cask abhiudayg/dustmap/dustmap
+```
+
+### Standalone Command-Line Tool (CLI)
+```bash
+brew install abhiudayg/dustmap/dustmap
+```
+
+Or tap the repository first:
+```bash
+brew tap abhiudayg/dustmap
+brew install --cask dustmap    # GUI App
+brew install dustmap          # CLI Tool
 ```
 
 ---
