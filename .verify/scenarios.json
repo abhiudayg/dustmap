@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "description": "Verification catalog for DustMap: Quality gates, functional scenarios (S-*), and adversarial/jailbreak failure scenarios (F-*). Weights: critical=5, high=3, medium=2, low=1.",
+  "severity_weights": {
+    "critical": 5,
+    "high": 3,
+    "medium": 2,
+    "low": 1
+  },
+  "verdict_rules": {
+    "PASS": "no failed critical or high scenario and score >= 95",
+    "CONDITIONAL": "no failed critical scenario and score >= 80",
+    "FAIL": "anything else"
+  },
+  "gates": [
+    {
+      "id": "G-BUILD",
+      "title": "Rust workspace builds cleanly",
+      "severity": "critical",
+      "command": "cargo build --workspace",
+      "expect": "exit 0"
+    },
+    {
+      "id": "G-FMT",
+      "title": "Code formatting is clean",
+      "severity": "medium",
+      "command": "cargo fmt --all -- --check",
+      "expect": "exit 0"
+    },
+    {
+      "id": "G-CLIPPY",
+      "title": "Clippy reports no warnings or errors",
+      "severity": "high",
+      "command": "cargo clippy --workspace --all-targets -- -D warnings",
+      "expect": "exit 0"
+    },
+    {
+      "id": "G-TEST",
+      "title": "All unit and integration tests pass",
+      "severity": "critical",
+      "command": "cargo test --workspace",
+      "expect": "exit 0"
+    },
+    {
+      "id": "G-UI-BUILD",
+      "title": "Svelte 5 frontend builds with Vite and Bun",
+      "severity": "critical",
+      "command": "cd app && bun run build",
+      "expect": "exit 0"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S-SCAN-01",
+      "kind": "functional",
+      "severity": "critical",
+      "title": "Directory hierarchy traversal and byte size calculations",
+      "given": "A directory tree with files of known sizes",
+      "when": "scanner::scan() runs over the tree",
+      "then": "Computed logical sizes and file counts exactly match reality",
+      "command": "cargo test -p dustmap-core --test functional_tests test_scanner_directory_hierarchy_and_sizes"
+    },
+    {
+      "id": "S-SCAN-02",
+      "kind": "functional",
+      "severity": "high",
+      "title": "Hidden directory and dotfile discovery",
+      "given": "A filesystem branch containing hidden dotfiles and .cache folders",
+      "when": "scanner::scan() traverses the branch",
+      "then": "All hidden files are detected and marked is_hidden=true",
+      "command": "cargo test -p dustmap-core --test functional_tests test_hidden_files_detection"
+    },
+    {
+      "id": "S-AGG-01",
+      "kind": "functional",
+      "severity": "critical",
+      "title": "Post-order tree aggregation invariant",
+      "given": "A multi-level directory hierarchy",
+      "when": "Index::compute_aggregates() completes",
+      "then": "Parent logical_total equals the exact sum of all descendants",
+      "command": "cargo test -p dustmap-core --test functional_tests test_post_order_aggregation_invariant"
+    },
+    {
+      "id": "S-VOL-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "System and external volume enumeration",
+      "given": "Mounted APFS and external volumes",
+      "when": "volumes::list_volumes() is invoked",
+      "then": "Mounted disks are enumerated with valid total and available capacity",
+      "command": "cargo test -p dustmap-core --test functional_tests test_volume_enumeration_functional"
+    },
+    {
+      "id": "S-RULE-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "TOML cleanup rule schema parsing and validation",
+      "given": "A declarative rule in rules/homebrew-cache.toml",
+      "when": "load_rule() parses the TOML definition",
+      "then": "Rule attributes (id, risk, removal, regenerable) match schema",
+      "command": "cargo test -p dustmap-rules"
+    },
+    {
+      "id": "S-AUDIT-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "Structured append-only audit logging of deletion operations",
+      "given": "A cleanup deletion action",
+      "when": "AuditLog::append() writes an AuditEntry",
+      "then": "Structured JSON-line is appended with targets, bytes, timestamp, and action",
+      "command": "cargo test -p dustmap-core --test functional_tests test_audit_log_records_deletion_entry"
+    },
+    {
+      "id": "S-CLI-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "CLI execution with text and JSON outputs",
+      "given": "dustmap CLI binary",
+      "when": "invoked with `dustmap scan rules`",
+      "then": "Reports scan metrics with exit 0",
+      "command": "cargo run -p dustmap-cli -- scan rules"
+    },
+    {
+      "id": "S-SIGN-01",
+      "kind": "functional",
+      "severity": "critical",
+      "title": "Apple Developer ID codesigning identity verification",
+      "given": "Developer ID Application certificate",
+      "when": "security find-identity validates available certificates",
+      "then": "Valid Developer ID Application is present and ready for signing",
+      "command": "security find-identity -p codesigning -v | grep -q 'Developer ID Application'"
+    },
+    {
+      "id": "F-TRAV-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Directory traversal injection (../../etc/passwd) rejected",
+      "given": "Adversarial path inputs containing '..' parent directory components",
+      "when": "validate_delete_target() evaluates the path",
+      "then": "The operation is rejected immediately with SafetyError::PathTraversal",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_path_traversal_dot_dot_injection"
+    },
+    {
+      "id": "F-TRAV-02",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Null byte path injection rejected",
+      "given": "Adversarial path inputs containing embedded null bytes ('\\0')",
+      "when": "check_raw_traversal() evaluates the string",
+      "then": "The operation is rejected immediately with SafetyError::InvalidPath",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_null_byte_path_injection"
+    },
+    {
+      "id": "F-SIP-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "SIP and system protected directories blocked from deletion",
+      "given": "Adversarial targets targeting /System, /usr, /bin, /sbin, /etc, /cores",
+      "when": "Deletion via trash or permanent delete is attempted",
+      "then": "Safety layer blocks the call with SystemProtected error before any action",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_sip_and_system_protection"
+    },
+    {
+      "id": "F-ROOT-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Deletion target escaping outside authorized scan root blocked",
+      "given": "A target path located outside the authorized scan root",
+      "when": "validate_delete_target(path, Some(root)) is evaluated",
+      "then": "The operation is rejected with SafetyError::OutsideRoot",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_root_escape_boundary"
+    },
+    {
+      "id": "F-SYMLINK-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Malicious symlink pointing to system directories blocked from traversal",
+      "given": "A symlink inside a user directory pointing to /System",
+      "when": "validate_delete_target() checks the symlink",
+      "then": "The operation is rejected with SafetyError::SymlinkEscape",
+      "command": "cargo test -p dustmap-core --test adversarial_jailbreak_tests test_jailbreak_symlink_escape_to_protected_system"
+    },
+    {
+      "id": "F-PRIV-01",
+      "kind": "jailbreak",
+      "severity": "high",
+      "title": "Application executes without root/sudo elevation",
+      "given": "Current process execution environment",
+      "when": "Checking user UID",
+      "then": "UID is non-zero (unprivileged user context)",
+      "command": "test $(id -u) -ne 0"
+    }
+  ]
+}

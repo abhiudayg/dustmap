@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release (macOS)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run Full Verification Suite (.verify)
+        run: .verify/run.sh
+
+      - name: Install Frontend Dependencies
+        working-directory: app
+        run: bun install
+
+      - name: Build Tauri Desktop Application & DMG
+        working-directory: app
+        run: bun run tauri build
+
+      - name: Build Standalone CLI Binary
+        run: cargo build --release -p dustmap-cli
+
+      - name: Prepare Release Assets
+        run: |
+          mkdir -p release-assets
+          cp target/release/bundle/dmg/*.dmg release-assets/ 2>/dev/null || true
+          cp target/release/dustmap release-assets/dustmap-darwin-arm64
+          cd release-assets
+          shasum -a 256 * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          name: DustMap ${{ github.ref_name }}

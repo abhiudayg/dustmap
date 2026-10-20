@@ -1,0 +1,189 @@
+{
+  "generated_at": "2026-10-20T19:29:25Z",
+  "git": {
+    "commit": "unknown",
+    "branch": "unknown"
+  },
+  "summary": {
+    "total": 19,
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "score": 100,
+    "verdict": "PASS",
+    "blocking_failures": []
+  },
+  "results": [
+    {
+      "id": "G-BUILD",
+      "kind": "gate",
+      "severity": "critical",
+      "title": "Rust workspace builds cleanly",
+      "status": "pass",
+      "duration_s": 5,
+      "detail": ""
+    },
+    {
+      "id": "G-FMT",
+      "kind": "gate",
+      "severity": "medium",
+      "title": "Code formatting is clean",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "G-CLIPPY",
+      "kind": "gate",
+      "severity": "high",
+      "title": "Clippy reports no warnings or errors",
+      "status": "pass",
+      "duration_s": 2,
+      "detail": ""
+    },
+    {
+      "id": "G-TEST",
+      "kind": "gate",
+      "severity": "critical",
+      "title": "All unit and integration tests pass",
+      "status": "pass",
+      "duration_s": 5,
+      "detail": ""
+    },
+    {
+      "id": "G-UI-BUILD",
+      "kind": "gate",
+      "severity": "critical",
+      "title": "Svelte 5 frontend builds with Vite and Bun",
+      "status": "pass",
+      "duration_s": 1,
+      "detail": ""
+    },
+    {
+      "id": "S-SCAN-01",
+      "kind": "functional",
+      "severity": "critical",
+      "title": "Directory hierarchy traversal and byte size calculations",
+      "status": "pass",
+      "duration_s": 1,
+      "detail": ""
+    },
+    {
+      "id": "S-SCAN-02",
+      "kind": "functional",
+      "severity": "high",
+      "title": "Hidden directory and dotfile discovery",
+      "status": "pass",
+      "duration_s": 1,
+      "detail": ""
+    },
+    {
+      "id": "S-AGG-01",
+      "kind": "functional",
+      "severity": "critical",
+      "title": "Post-order tree aggregation invariant",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "S-VOL-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "System and external volume enumeration",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "S-RULE-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "TOML cleanup rule schema parsing and validation",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "S-AUDIT-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "Structured append-only audit logging of deletion operations",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "S-CLI-01",
+      "kind": "functional",
+      "severity": "high",
+      "title": "CLI execution with text and JSON outputs",
+      "status": "pass",
+      "duration_s": 2,
+      "detail": ""
+    },
+    {
+      "id": "S-SIGN-01",
+      "kind": "functional",
+      "severity": "critical",
+      "title": "Apple Developer ID codesigning identity verification",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "F-TRAV-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Directory traversal injection (../../etc/passwd) rejected",
+      "status": "pass",
+      "duration_s": 1,
+      "detail": ""
+    },
+    {
+      "id": "F-TRAV-02",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Null byte path injection rejected",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "F-SIP-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "SIP and system protected directories blocked from deletion",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "F-ROOT-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Deletion target escaping outside authorized scan root blocked",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "F-SYMLINK-01",
+      "kind": "jailbreak",
+      "severity": "critical",
+      "title": "Malicious symlink pointing to system directories blocked from traversal",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    },
+    {
+      "id": "F-PRIV-01",
+      "kind": "jailbreak",
+      "severity": "high",
+      "title": "Application executes without root/sudo elevation",
+      "status": "pass",
+      "duration_s": 0,
+      "detail": ""
+    }
+  ]
+}

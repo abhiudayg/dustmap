@@ -1,0 +1,22 @@
+[package]
+name = "dustmap-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "dustmap_app_lib"
+crate-type = ["cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dustmap-core = { path = "../../crates/dustmap-core" }
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+uuid = { version = "1", features = ["v4"] }

@@ -1,0 +1,24 @@
+id = "homebrew-cache"
+name = "Homebrew Download Cache"
+owner = "Homebrew"
+category = "developer"
+risk = "safe"
+removal = "trash"
+regenerable = true
+regeneration_note = "Homebrew re-downloads packages on next install or upgrade."
+
+[match]
+paths = ["~/Library/Caches/Homebrew"]
+type = "directory"
+min_age_days = 0
+
+[explanation]
+summary = "Downloaded package archives cached by Homebrew."
+consequence = "Next install or upgrade re-downloads required packages."
+undo = "Items moved to Trash; restorable until Trash is emptied."
+
+[verification]
+tests = ["fixtures/homebrew-cache/basic"]
+reviewed_by = ["aeswibon"]
+reviewed_on = "2026-10-21"
+last_checked_against = "Homebrew 4.x"
