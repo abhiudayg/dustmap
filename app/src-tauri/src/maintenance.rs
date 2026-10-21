@@ -268,10 +268,17 @@ pub fn remnant_remove(
     if selected.len() != paths.len() {
         return Err("Some selected items are no longer offered. Search again.".to_string());
     }
-    if selected.iter().any(|remnant| remnant.risk == RiskLevel::ReportOnly) {
+    if selected
+        .iter()
+        .any(|remnant| remnant.risk == RiskLevel::ReportOnly)
+    {
         return Err("Report-only items cannot be removed.".to_string());
     }
-    if selected.iter().any(|remnant| remnant.risk == RiskLevel::Caution) && !confirm_caution {
+    if selected
+        .iter()
+        .any(|remnant| remnant.risk == RiskLevel::Caution)
+        && !confirm_caution
+    {
         return Err("Caution items need explicit confirmation before they are moved.".to_string());
     }
 

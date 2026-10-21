@@ -173,8 +173,9 @@ if [[ $TOTAL_POINTS -gt 0 ]]; then
   SCORE=$(( (EARNED_POINTS * 100) / TOTAL_POINTS ))
 fi
 
+FAILED_TESTS=$(grep -c '"status":"fail"' "$RESULTS" || true)
 VERDICT="FAIL"
-if [[ $FAILED_CRITICAL -eq 0 && $FAILED_HIGH -eq 0 && $SCORE -ge 95 ]]; then
+if [[ $FAILED_TESTS -eq 0 && $SCORE -ge 95 ]]; then
   VERDICT="PASS"
 elif [[ $FAILED_CRITICAL -eq 0 && $SCORE -ge 80 ]]; then
   VERDICT="CONDITIONAL"
@@ -182,7 +183,6 @@ fi
 
 TOTAL_TESTS=$(wc -l < "$RESULTS" | tr -d ' ')
 PASSED_TESTS=$(grep -c '"status":"pass"' "$RESULTS" || true)
-FAILED_TESTS=$(grep -c '"status":"fail"' "$RESULTS" || true)
 SKIPPED_TESTS=$(grep -c '"status":"skipped"' "$RESULTS" || true)
 
 COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
