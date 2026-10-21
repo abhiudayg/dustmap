@@ -199,5 +199,5 @@ jobs:
           files: release-assets/*
           draft: false
           prerelease: false
-          generate_release_notes: true
+          body_path: CHANGELOG.md
           name: DustMap ${{ github.ref_name }}

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-20T23:57:13Z",
+  "generated_at": "2026-10-21T00:12:41Z",
   "git": {
-    "commit": "97140278188cd8725df9c466b3736411a803fcc1",
+    "commit": "883ce85a0eca1bd6708a4c990ab0f550b68d8425",
     "branch": "master"
   },
   "summary": {
@@ -38,7 +38,7 @@
       "severity": "high",
       "title": "Clippy reports no warnings or errors",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -56,7 +56,7 @@
       "severity": "critical",
       "title": "Svelte 5 frontend builds with Vite and Bun",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 2,
       "detail": ""
     },
     {
@@ -65,7 +65,7 @@
       "severity": "critical",
       "title": "Directory hierarchy traversal and byte size calculations",
       "status": "pass",
-      "duration_s": 0,
+      "duration_s": 1,
       "detail": ""
     },
     {
@@ -101,7 +101,7 @@
       "severity": "high",
       "title": "TOML cleanup rule schema parsing and validation",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -128,7 +128,7 @@
       "severity": "critical",
       "title": "Apple Developer ID codesigning identity verification",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
@@ -146,7 +146,7 @@
       "severity": "critical",
       "title": "Null byte path injection rejected",
       "status": "pass",
-      "duration_s": 0,
+      "duration_s": 1,
       "detail": ""
     },
     {
@@ -209,7 +209,7 @@
       "severity": "critical",
       "title": "Deletion failure error propagation and explicit rejection",
       "status": "pass",
-      "duration_s": 1,
+      "duration_s": 0,
       "detail": ""
     },
     {
