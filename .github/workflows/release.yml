@@ -21,6 +21,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
+          components: rustfmt, clippy
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -30,12 +31,12 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Run Full Verification Suite (.verify)
-        run: .verify/run.sh
-
       - name: Install Frontend Dependencies
         working-directory: app
         run: bun install
+
+      - name: Run Full Verification Suite (.verify)
+        run: .verify/run.sh
 
       - name: Import Apple signing certificate
         if: runner.os == 'macOS'
