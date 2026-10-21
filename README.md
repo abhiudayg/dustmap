@@ -24,22 +24,6 @@ DustMap is a free, open-source macOS storage tool built for engineers, power use
 
 ---
 
-## 📸 Screenshots
-
-### 1. Radar Inode Sweep & Fast Initializer HUD
-*Real-time radar sweep visualizing concurrent Rayon worker threads indexing filesystem nodes.*
-![Radar Inode Sweep HUD](docs/screenshots/01-radar-scan-hud.png)
-
-### 2. Obsidian Telemetry Dashboard & Donut Sector Breakdown
-*Dynamic category arcs, APFS physical block gauges, and high-density space consumer inspector.*
-![Donut Sector Breakdown](docs/screenshots/02-telemetry-donut-dashboard.png)
-
-### 3. Trash-First Safety Gate & Confirm Deletion Protocol
-*Surgical disk reclaim modal with two-step verification, safety checks, and macOS Trash routing.*
-![Trash-First Safety Gate](docs/screenshots/03-trash-safety-confirm-modal.png)
-
----
-
 ## 🎯 Key Capabilities
 
 - ⚡ **Blazing Fast Traversal:** Traverses deep file trees using bounded parallel I/O and compact in-memory indexes.
