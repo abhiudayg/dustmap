@@ -1,5 +1,5 @@
 import type { VolumeInfo, IpcEntry, IpcScanSummary, ScanProgressInfo, CachedScanInfo } from './types';
-import { listVolumes, startScan, scanSummary, listChildren, listCacheEntries, revealInFinder, saveReportFile, deletePath as invokeDelete, cancelScan, loadCachedScan } from './invoke';
+import { listVolumes, startScan, scanSummary, listChildren, listCacheEntries, revealInFinder, saveReportFile, deletePath as invokeDelete, clearFolderContents as invokeClear, cancelScan, loadCachedScan } from './invoke';
 
 export interface BreadcrumbItem {
   id: number;
@@ -347,15 +347,28 @@ export function clearDeleteTarget() {
 }
 
 export async function performDelete(path: string, permanent: boolean, entryId?: number) {
-  const result = await invokeDelete(path, permanent, appState.scanId, entryId, appState.currentEntryId);
+  const result = await invokeDelete(path, permanent, appState.scanId, entryId);
   if (!result.success) {
     throw new Error(result.error ?? 'Delete operation was rejected by macOS (permission denied or protected path)');
   }
   clearDeleteTarget();
+  await refreshAfterChange();
+  return result;
+}
+
+export async function performClear(path: string, permanent: boolean, entryId?: number) {
+  const result = await invokeClear(path, permanent, appState.scanId, entryId);
+  await refreshAfterChange();
+  return result;
+}
+
+async function refreshAfterChange() {
   if (appState.scanId) {
     await loadChildren(appState.scanId, appState.currentEntryId);
   }
-  return result;
+  if (appState.activeFilter === 'cache') {
+    await fetchCacheEntries();
+  }
 }
 
 const RECENT_PATH_LIMIT = 6;

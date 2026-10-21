@@ -132,3 +132,8 @@ export interface CachedScanInfo {
   scan_id: string;
   scanned_at_secs: number;
 }
+
+export interface IpcClearResult {
+  removed: number;
+  failed: string[];
+}

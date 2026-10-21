@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState, clearDeleteTarget, performDelete, getEntrySize } from '../lib/store.svelte';
+  import { appState, clearDeleteTarget, performClear, performDelete, getEntrySize } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
 
   let understood = $state(false);
@@ -16,6 +16,25 @@
     } catch (e: unknown) {
       error = e instanceof Error ? e.message : String(e);
       // Keep modal open so error is fully visible to the user!
+    } finally {
+      deleting = false;
+    }
+  }
+
+  async function doClear(permanent: boolean) {
+    if (!appState.deleteTarget) return;
+    if (permanent && !understood) return;
+    deleting = true;
+    error = null;
+    try {
+      const result = await performClear(appState.deleteTarget.path, permanent, appState.deleteTarget.entry.id);
+      if (result.failed.length > 0) {
+        error = `Removed ${result.removed} item(s). Could not remove: ${result.failed.join('; ')}`;
+      } else {
+        clearDeleteTarget();
+      }
+    } catch (e: unknown) {
+      error = e instanceof Error ? e.message : String(e);
     } finally {
       deleting = false;
     }
@@ -168,6 +187,12 @@
           <span>{deleting && understood ? 'Deleting…' : 'Delete Forever'}</span>
         </button>
       </div>
+
+      {#if target.entry.kind === 'Directory'}
+        <button class="btn-trash" onclick={() => doClear(false)} disabled={deleting}>
+          <span>{deleting ? 'Emptying…' : 'Empty folder contents (keep the folder)'}</span>
+        </button>
+      {/if}
 
       <!-- Secondary Footer Cancel Button -->
       <div class="cancel-footer">

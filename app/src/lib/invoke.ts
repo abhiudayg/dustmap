@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { VolumeInfo, IpcScanSummary, IpcChildrenResponse, IpcDeleteResult, IpcEntry, StartupReport, CleanupPreview, CleanupResult, Remnant, DataEntry, CachedScanInfo } from './types';
+import type { VolumeInfo, IpcScanSummary, IpcChildrenResponse, IpcDeleteResult, IpcClearResult, IpcEntry, StartupReport, CleanupPreview, CleanupResult, Remnant, DataEntry, CachedScanInfo } from './types';
 
 export async function listVolumes(): Promise<VolumeInfo[]> {
   return invoke<VolumeInfo[]>('list_volumes_cmd');
@@ -34,14 +34,26 @@ export async function deletePath(
   permanent: boolean,
   scanId?: string | null,
   entryId?: number | null,
-  parentId?: number | null,
 ): Promise<IpcDeleteResult> {
   return invoke<IpcDeleteResult>('delete_path', {
     path,
     permanent,
     scanId: scanId ?? null,
     entryId: entryId ?? null,
-    parentId: parentId ?? null,
+  });
+}
+
+export async function clearFolderContents(
+  path: string,
+  permanent: boolean,
+  scanId?: string | null,
+  entryId?: number | null,
+): Promise<IpcClearResult> {
+  return invoke<IpcClearResult>('clear_folder_contents', {
+    path,
+    permanent,
+    scanId: scanId ?? null,
+    entryId: entryId ?? null,
   });
 }
 

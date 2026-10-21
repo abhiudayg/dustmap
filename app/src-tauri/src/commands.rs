@@ -224,25 +224,76 @@ pub async fn delete_path(
     permanent: bool,
     scan_id: Option<String>,
     entry_id: Option<u32>,
-    parent_id: Option<u32>,
     state: State<'_, SharedScanStore>,
 ) -> Result<IpcDeleteResult, String> {
-    let home = std::env::var_os("HOME")
+    let home = home_dir()?;
+    let result = delete_one(&path, permanent, scan_id.as_deref(), &home)?;
+    if let (true, Some(sid), Some(eid)) = (result.success, scan_id.as_deref(), entry_id) {
+        forget_entry(&state, sid, eid);
+    }
+    Ok(result)
+}
+
+#[derive(serde::Serialize)]
+pub struct IpcClearResult {
+    pub removed: usize,
+    pub failed: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn clear_folder_contents(
+    path: String,
+    permanent: bool,
+    scan_id: Option<String>,
+    entry_id: Option<u32>,
+    state: State<'_, SharedScanStore>,
+) -> Result<IpcClearResult, String> {
+    let home = home_dir()?;
+    let children = std::fs::read_dir(&path).map_err(|e| format!("Cannot read {path}: {e}"))?;
+    let mut removed = 0;
+    let mut failed = Vec::new();
+    for child in children.flatten() {
+        let child_path = child.path().display().to_string();
+        match delete_one(&child_path, permanent, scan_id.as_deref(), &home) {
+            Ok(result) if result.success => removed += 1,
+            Ok(result) => failed.push(format!(
+                "{child_path}: {}",
+                result.error.unwrap_or_default()
+            )),
+            Err(err) => failed.push(format!("{child_path}: {err}")),
+        }
+    }
+    if let (Some(sid), Some(eid)) = (scan_id.as_deref(), entry_id) {
+        prune_missing_children(&state, sid, eid, Path::new(&path));
+    }
+    Ok(IpcClearResult { removed, failed })
+}
+
+fn home_dir() -> Result<PathBuf, String> {
+    std::env::var_os("HOME")
         .map(PathBuf::from)
-        .ok_or_else(|| "HOME is not set".to_string())?;
+        .ok_or_else(|| "HOME is not set".to_string())
+}
+
+fn delete_one(
+    path: &str,
+    permanent: bool,
+    scan_id: Option<&str>,
+    home: &Path,
+) -> Result<IpcDeleteResult, String> {
     let candidate =
-        cleaner::candidate_for(&PathBuf::from(&path), "manual-delete", RiskLevel::Review)
+        cleaner::candidate_for(&PathBuf::from(path), "manual-delete", RiskLevel::Review)
             .map_err(|e| format!("Cannot read {path}: {e}"))?;
     let logical_bytes = candidate.logical_bytes;
     let preview = cleaner::preview(
-        scan_id.as_deref().unwrap_or("manual"),
+        scan_id.unwrap_or("manual"),
         vec![candidate],
         Vec::new(),
-        &home,
+        home,
     );
     if let Some(rejection) = preview.rejected.first() {
         return Ok(IpcDeleteResult {
-            path,
+            path: path.to_string(),
             success: false,
             error: Some(format!(
                 "Safety Protection: {} is protected",
@@ -254,7 +305,7 @@ pub async fn delete_path(
     let support = home.join(APP_SUPPORT_RELATIVE);
     let audit = AuditLog::new(support.join("audit.jsonl"));
     if permanent {
-        return permanently_delete(path, logical_bytes, &audit);
+        return permanently_delete(path.to_string(), logical_bytes, &audit);
     }
     let operation_id = uuid::Uuid::new_v4().to_string();
     let results = cleaner::execute(
@@ -262,36 +313,57 @@ pub async fn delete_path(
         &preview,
         &support.join("journal"),
         &audit,
-        &home,
+        home,
         move_to_trash,
     )
     .map_err(|e| e.to_string())?;
-    let outcome = results.first().map(|result| result.outcome.clone());
-    match outcome {
-        Some(ItemOutcome::MovedToTrash) => {
-            if let (Some(sid), Some(eid), Some(pid)) = (scan_id, entry_id, parent_id) {
-                if let Ok(mut store) = state.lock() {
-                    if let Some(scan_res) = store.scans.get_mut(&sid) {
-                        scan_res.index.remove_child(EntryId(pid), EntryId(eid));
-                    }
-                }
+    let error = match results.first().map(|result| result.outcome.clone()) {
+        Some(ItemOutcome::MovedToTrash) => None,
+        Some(other) => Some(describe_failure(&other)),
+        None => Some("Nothing was deleted".to_string()),
+    };
+    Ok(IpcDeleteResult {
+        path: path.to_string(),
+        success: error.is_none(),
+        error,
+    })
+}
+
+fn forget_entry(state: &State<'_, SharedScanStore>, scan_id: &str, entry_id: u32) {
+    if let Ok(mut store) = state.lock() {
+        if let Some(scan) = store.scans.get_mut(scan_id) {
+            let id = EntryId(entry_id);
+            if let Some(parent) = scan.index.entry(id).map(|entry| entry.parent) {
+                scan.index.remove_child(parent, id);
             }
-            Ok(IpcDeleteResult {
-                path,
-                success: true,
-                error: None,
-            })
         }
-        Some(other) => Ok(IpcDeleteResult {
-            path,
-            success: false,
-            error: Some(describe_failure(&other)),
-        }),
-        None => Ok(IpcDeleteResult {
-            path,
-            success: false,
-            error: Some("Nothing was deleted".to_string()),
-        }),
+    }
+}
+
+fn prune_missing_children(
+    state: &State<'_, SharedScanStore>,
+    scan_id: &str,
+    entry_id: u32,
+    folder: &Path,
+) {
+    if let Ok(mut store) = state.lock() {
+        if let Some(scan) = store.scans.get_mut(scan_id) {
+            let parent = EntryId(entry_id);
+            let gone: Vec<EntryId> = scan
+                .index
+                .children(parent)
+                .iter()
+                .copied()
+                .filter(|id| {
+                    scan.index
+                        .entry(*id)
+                        .is_some_and(|entry| !folder.join(&entry.name).exists())
+                })
+                .collect();
+            for id in gone {
+                scan.index.remove_child(parent, id);
+            }
+        }
     }
 }
 
