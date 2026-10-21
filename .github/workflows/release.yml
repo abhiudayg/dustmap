@@ -13,7 +13,7 @@ jobs:
   release:
     name: Build & Release (macOS)
     runs-on: macos-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -73,7 +73,7 @@ jobs:
           echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
 
       - name: Build and sign DustMap.app (Tauri)
-        timeout-minutes: 30
+        timeout-minutes: 75
         working-directory: app
         env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
@@ -114,7 +114,7 @@ jobs:
           xcrun stapler staple "$DMG"
 
       - name: Build and sign CLI binary
-        timeout-minutes: 15
+        timeout-minutes: 30
         env:
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
         shell: bash
