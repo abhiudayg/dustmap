@@ -160,6 +160,6 @@ The PRD is not fully complete. Core-engine items are implemented and tested. The
 | Your Data and cask zap | `data.rs`, `packaging/` | Done, with tests |
 | Scan cache | `scan_cache.rs` | Implemented; restart flow not yet verified end-to-end |
 | CLI subcommands | `dustmap-cli` | Done |
-| Permanent deletion | — | Not implemented; decision pending |
+| Permanent deletion | `commands.rs` (`delete_path`) | Opt-in per item from the delete dialog, behind a confirmation checkbox; audited as `deleted_permanently`. Not yet recorded in the cleanup journal |
 | Overview, delete modal, folder explorer, splash | `app/src/components/` | Not yet matched to the reference designs |
 | Notarized CI release | `.github/workflows/release.yml` | Notarization verified locally; CI run not yet verified |

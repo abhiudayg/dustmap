@@ -1,16 +1,17 @@
+use chrono::Utc;
 use dustmap_core::{
-    audit::AuditLog,
+    audit::{AuditAction, AuditEntry, AuditLog, AuditTarget},
     cleaner::{self, ItemOutcome},
     data::{self, APP_SUPPORT_RELATIVE},
     index::{EntryId, ROOT_ID},
     ipc::{IpcChildrenResponse, IpcDeleteResult, IpcEntry, IpcScanSummary, VolumeInfo},
     rules::RiskLevel,
     scanner::{scan, ScanOptions, ScanResult},
-    trash::move_to_trash,
+    trash::{delete_permanently, move_to_trash},
     volumes::list_volumes,
 };
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc, Mutex};
 use tauri::{Emitter, State};
@@ -226,21 +227,13 @@ pub async fn delete_path(
     parent_id: Option<u32>,
     state: State<'_, SharedScanStore>,
 ) -> Result<IpcDeleteResult, String> {
-    if permanent {
-        return Ok(IpcDeleteResult {
-            path,
-            success: false,
-            error: Some(
-                "Permanent deletion is not available; items are moved to Trash.".to_string(),
-            ),
-        });
-    }
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .ok_or_else(|| "HOME is not set".to_string())?;
     let candidate =
         cleaner::candidate_for(&PathBuf::from(&path), "manual-delete", RiskLevel::Review)
             .map_err(|e| format!("Cannot read {path}: {e}"))?;
+    let logical_bytes = candidate.logical_bytes;
     let preview = cleaner::preview(
         scan_id.as_deref().unwrap_or("manual"),
         vec![candidate],
@@ -260,6 +253,9 @@ pub async fn delete_path(
 
     let support = home.join(APP_SUPPORT_RELATIVE);
     let audit = AuditLog::new(support.join("audit.jsonl"));
+    if permanent {
+        return permanently_delete(path, logical_bytes, &audit);
+    }
     let operation_id = uuid::Uuid::new_v4().to_string();
     let results = cleaner::execute(
         &operation_id,
@@ -297,6 +293,34 @@ pub async fn delete_path(
             error: Some("Nothing was deleted".to_string()),
         }),
     }
+}
+
+fn permanently_delete(
+    path: String,
+    logical_bytes: u64,
+    audit: &AuditLog,
+) -> Result<IpcDeleteResult, String> {
+    delete_permanently(Path::new(&path)).map_err(|e| e.to_string())?;
+    audit
+        .append(&AuditEntry {
+            timestamp: Utc::now(),
+            dustmap_version: env!("CARGO_PKG_VERSION").to_string(),
+            targets: vec![AuditTarget {
+                path: path.clone(),
+                logical_bytes,
+                allocated_bytes: None,
+                action: AuditAction::DeletedPermanently,
+                rule_id: None,
+            }],
+            bytes_before: None,
+            bytes_after: None,
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(IpcDeleteResult {
+        path,
+        success: true,
+        error: None,
+    })
 }
 
 fn describe_failure(outcome: &ItemOutcome) -> String {

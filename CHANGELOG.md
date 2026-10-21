@@ -5,6 +5,11 @@ All notable changes to DustMap will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Permanent deletion from the delete dialog. It is opt-in per item, requires a confirmation checkbox, and is written to the audit log as `deleted_permanently`.
+
 ## [1.0.0] - 2026-10-21
 
 ### Added

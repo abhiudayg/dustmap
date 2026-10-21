@@ -47,7 +47,7 @@ DustMap is a free, open-source macOS disk space analyzer and Mac storage cleaner
 - CLI: `scan`, `summary`, `clean` (dry run by default), `rules`, `audit`, `snapshots`, `remnants`, `journal`, `data`.
 
 **Not yet done**
-- Permanent deletion is not available. Everything goes to the Trash.
+- Permanent deletion is opt-in per item from the delete dialog, with a confirmation checkbox. Cleanup and App Cleanups always use the Trash.
 - Some screens still differ from the reference designs: the Overview, the delete confirmation, the folder explorer, and the splash screen.
 - The notarized release pipeline has been verified locally, but not yet on a tagged CI run.
 
