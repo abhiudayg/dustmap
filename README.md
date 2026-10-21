@@ -16,6 +16,10 @@
   <a href="docs/ARCHITECTURE.md"><img src="https://img.shields.io/badge/docs-Architecture-teal.svg" alt="Architecture Docs"></a>
 </p>
 
+<p align="center">
+  <img src="docs/screenshots/00-hero-overview.png" width="800" alt="DustMap overview: disk usage donut and Top Space Consumers" />
+</p>
+
 DustMap is a free, open-source macOS storage tool built for engineers, power users, and anyone with mysterious "System Data" filling their disk. Built with Rust and Tauri 2, it scans millions of filesystem entries in seconds, renders interactive sector donuts and squarified sector maps, and provides an explainable, safe, Trash-first cleaner.
 
 ---
@@ -44,6 +48,24 @@ DustMap is a free, open-source macOS storage tool built for engineers, power use
 - 💾 **Unified Disks Dropdown:** Seamlessly switch between external SSDs, USB drives, and internal APFS containers from a single menu bar dropdown.
 - 🛡️ **Conservative, Trash-First Cleaner:** Every recommendation explains *what* it removes, *why* it is regenerable, and routes to macOS Trash by default.
 - 🔒 **Zero Telemetry & Completely Offline:** No analytics, no phone-home, no accounts. 100% auditable open-source code.
+
+---
+
+## 🧭 Status
+
+**Shipped**
+- Disk overview with donut breakdown, squarified treemap, and Top Space Consumers, using allocated (on-disk) sizes.
+- Scan results cached per volume, so a restart reloads the last scan until you rescan.
+- Cleanup: Trash-first, per-rule preview with confirmation. Protected paths are never offered.
+- App Cleanups: finds leftovers for an uninstalled app by its bundle ID, and moves the selected ones to Trash. Caution items need an extra checkbox.
+- Your Data: lists and removes DustMap's own data (settings, audit log, journal, scan cache, logs).
+- Cleanup journal with startup reconciliation, and an append-only audit log.
+- CLI: `scan`, `summary`, `clean` (dry run by default), `rules`, `audit`, `snapshots`, `remnants`, `journal`, `data`.
+
+**Not yet done**
+- Permanent deletion is not available. Everything goes to the Trash.
+- Some screens still differ from the reference designs: the Overview, the delete confirmation, the folder explorer, and the splash screen.
+- The notarized release pipeline has been verified locally, but not yet on a tagged CI run.
 
 ---
 

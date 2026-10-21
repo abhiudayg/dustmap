@@ -13,6 +13,7 @@ jobs:
   release:
     name: Build & Release (macOS)
     runs-on: macos-latest
+    timeout-minutes: 90
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -39,17 +40,12 @@ jobs:
         run: .verify/run.sh
 
       - name: Import Apple signing certificate
-        if: runner.os == 'macOS'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${APPLE_CERTIFICATE:-}" ]; then
-            echo "ERROR: APPLE_CERTIFICATE secret is required (release binaries must be Developer ID–signed at build)"
-            exit 1
-          fi
           CERTIFICATE_PATH="$RUNNER_TEMP/build_certificate.p12"
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -hex 32)"
@@ -66,116 +62,48 @@ jobs:
           security list-keychain -d user -s "$KEYCHAIN_PATH" \
             $(security list-keychain -d user | tr -d '"')
 
-      - name: Write notarization API key (macOS)
-        if: runner.os == 'macOS'
+      - name: Write notarization API key
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${APPLE_API_KEY_P8:-}" ]; then
-            echo "NOTE: APPLE_API_KEY_P8 secret is not configured; notarization will be skipped."
-            exit 0
-          fi
           printf '%s' "$APPLE_API_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
           chmod 600 "$RUNNER_TEMP/AuthKey.p8"
+          echo "APPLE_API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
 
-      - name: Build Tauri Desktop Application
+      - name: Build, sign, notarize, and package DustMap (Tauri)
         working-directory: app
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: bun run tauri build
 
-      - name: Build Standalone CLI Binary
-        run: cargo build --release -p dustmap-cli
-
-      - name: Sign Binaries (macOS)
-        if: runner.os == 'macOS'
+      - name: Build and sign CLI binary
         env:
           APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${APPLE_IDENTITY:-}" ]; then
-            echo "ERROR: APPLE_IDENTITY secret is required (Developer ID Application only; ad-hoc disabled)"
-            exit 1
-          fi
+          cargo build --release -p dustmap-cli
+          codesign --force --options runtime --timestamp --sign "$APPLE_IDENTITY" target/release/dustmap
+          codesign --verify --strict --verbose=2 target/release/dustmap
 
-          # 1. Sign GUI application bundle
+      - name: Verify signatures and notarization
+        shell: bash
+        run: |
+          set -euo pipefail
           APP="target/release/bundle/macos/DustMap.app"
-          xattr -cr "$APP"
-          echo "Signing GUI application with Developer ID: $APPLE_IDENTITY"
-          codesign --force --options runtime --timestamp --deep --sign "$APPLE_IDENTITY" "$APP"
+          DMG="$(ls target/release/bundle/dmg/*.dmg | head -n 1)"
           codesign --verify --strict --verbose=2 "$APP"
-          CS_APP="$(codesign -dv --verbose=2 "$APP" 2>&1 || true)"
-          if ! echo "$CS_APP" | grep -q 'Authority=Developer ID Application:'; then
-            echo "ERROR: application bundle is not Developer ID–signed after codesign"
-            echo "$CS_APP" | head -20
-            exit 1
-          fi
+          xcrun stapler validate "$APP"
+          spctl -a -t exec -vv "$APP"
+          xcrun stapler validate "$DMG"
+          spctl -a -t open --context context:primary-signature -v "$DMG"
 
-          # 2. Sign CLI standalone binary
-          BIN="target/release/dustmap"
-          xattr -cr "$BIN"
-          echo "Signing CLI binary with Developer ID: $APPLE_IDENTITY"
-          codesign --force --options runtime --timestamp --sign "$APPLE_IDENTITY" "$BIN"
-          codesign --verify --strict --verbose=2 "$BIN"
-          CS_BIN="$(codesign -dv --verbose=2 "$BIN" 2>&1 || true)"
-          if ! echo "$CS_BIN" | grep -q 'Authority=Developer ID Application:'; then
-            echo "ERROR: CLI binary is not Developer ID–signed after codesign"
-            echo "$CS_BIN" | head -20
-            exit 1
-          fi
-
-      - name: Package, sign, notarize, and staple DMG (macOS)
-        if: runner.os == 'macOS'
-        env:
-          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          APP="target/release/bundle/macos/DustMap.app"
-          STAGE="$RUNNER_TEMP/dmg-stage"
-          mkdir -p target/release/bundle/dmg
-          DMG="target/release/bundle/dmg/DustMap_0.1.0_aarch64.dmg"
-          API_KEY="$RUNNER_TEMP/AuthKey.p8"
-
-          # 1. Package the signed application into DMG staging
-          rm -rf "$STAGE" && mkdir -p "$STAGE"
-          cp -R "$APP" "$STAGE/"
-          ln -s /Applications "$STAGE/Applications"
-          hdiutil create -volname "DustMap" -srcfolder "$STAGE" -ov -format UDZO "$DMG"
-
-          # 2. Sign the DMG
-          echo "Signing DMG with Developer ID: $APPLE_IDENTITY"
-          codesign --force --timestamp --sign "$APPLE_IDENTITY" "$DMG"
-          codesign --verify --strict --verbose=2 "$DMG"
-
-          # 3. Notarize with the App Store Connect API key (if provided)
-          if [ -f "$API_KEY" ] && [ -n "${APPLE_API_KEY_ID:-}" ] && [ -n "${APPLE_API_ISSUER_ID:-}" ]; then
-            echo "Submitting DMG for Apple notarization via notarytool..."
-            if ! xcrun notarytool submit "$DMG" \
-                --key "$API_KEY" \
-                --key-id "$APPLE_API_KEY_ID" \
-                --issuer "$APPLE_API_ISSUER_ID" \
-                --wait; then
-              echo "Notarization failed. Fetch the log with:"
-              echo "  xcrun notarytool history --key ... (find the submission ID), then"
-              echo "  xcrun notarytool log <submission-id> --key ... --key-id ... --issuer ..."
-              exit 1
-            fi
-
-            # 4. Staple and verify ticket
-            echo "Stapling notarization ticket to DMG..."
-            xcrun stapler staple "$DMG"
-            xcrun stapler validate "$DMG"
-            spctl -a -t open --context context:primary-signature -v "$DMG"
-          else
-            echo "NOTE: Notarization skipped (AuthKey.p8 or API credentials not provided)."
-          fi
-
-      - name: Clean up signing material (macOS)
-        if: runner.os == 'macOS' && always()
+      - name: Clean up signing material
+        if: always()
         shell: bash
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
@@ -183,12 +111,11 @@ jobs:
             security delete-keychain "$KEYCHAIN_PATH" || true
           fi
           rm -f "$RUNNER_TEMP/build_certificate.p12" "$RUNNER_TEMP/AuthKey.p8"
-          rm -rf "$RUNNER_TEMP/dmg-stage"
 
       - name: Prepare Release Assets
         run: |
           mkdir -p release-assets
-          cp target/release/bundle/dmg/*.dmg release-assets/ 2>/dev/null || true
+          cp target/release/bundle/dmg/*.dmg release-assets/
           cp target/release/dustmap release-assets/dustmap-darwin-arm64
           cd release-assets
           shasum -a 256 * > SHA256SUMS.txt

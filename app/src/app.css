@@ -10,6 +10,23 @@
 
 :root {
   color-scheme: dark;
+  /* One palette: every color in the app is one of these tokens. */
+  --color-surface: #101319;
+  --color-surface-container-lowest: #0b0e14;
+  --color-surface-container-low: #191c22;
+  --color-surface-container-high: #272a31;
+  --color-surface-container-highest: #32353c;
+  --color-on-surface: #e1e2eb;
+  --color-on-surface-variant: #e0c0b1;
+  --color-outline: #a78b7d;
+  --color-outline-variant: #584237;
+  --color-primary: #ffb690;
+  --color-primary-container: #f97316;
+  --color-on-primary-container: #582200;
+  --color-secondary: #4fdbc8;
+  --color-tertiary: #d0bcff;
+  --color-warning: #f59e0b;
+  --color-error: #ffb4ab;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   
@@ -29,8 +46,8 @@ body {
   font-family: var(--font-sans);
   font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   letter-spacing: -0.01em;
-  background-color: #0E1117;
-  color: #F0F6FC;
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
   overflow: hidden;
   height: 100vh;
   width: 100vw;
@@ -89,10 +106,14 @@ pre,
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #30363D;
+  background: var(--color-outline-variant);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #484F58;
+  background: var(--color-outline);
+}
+
+th {
+  text-align: left;
 }

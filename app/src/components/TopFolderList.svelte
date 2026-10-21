@@ -17,37 +17,37 @@
     const name = entry.name.toLowerCase();
     const isDir = entry.kind === 'Directory';
 
-    if (entry.isHidden) {
-      return { icon: 'visibility_off', color: '#8B949E', badge: 'HIDDEN' };
+    if (entry.is_hidden) {
+      return { icon: 'visibility_off', color: 'var(--color-outline)', badge: 'HIDDEN' };
     }
     if (name.includes('cache') || name === '.cache' || name.includes('deriveddata')) {
-      return { icon: 'local_fire_department', color: '#F43F5E', badge: 'PURGEABLE' };
+      return { icon: 'local_fire_department', color: 'var(--color-error)', badge: 'PURGEABLE' };
     }
     if (name === 'system' || name === 'private' || name === 'bin' || name === 'sbin' || name.startsWith('root')) {
-      return { icon: 'lock', color: '#8B949E', badge: 'SYSTEM' };
+      return { icon: 'lock', color: 'var(--color-outline)', badge: 'SYSTEM' };
     }
     if (name === '.docker' || name === 'docker' || name.includes('container')) {
-      return { icon: 'deployed_code', color: '#14B8A6', badge: 'CONTAINER' };
+      return { icon: 'deployed_code', color: 'var(--color-secondary)', badge: 'CONTAINER' };
     }
     if (name.endsWith('.app') || name === 'applications') {
-      return { icon: 'apps', color: '#F97316', badge: 'APPLICATION' };
+      return { icon: 'apps', color: 'var(--color-primary-container)', badge: 'APPLICATION' };
     }
     if (name.includes('coresimulator') || name.includes('developer') || name === 'xcode') {
-      return { icon: 'devices', color: '#F59E0B', badge: 'DEVELOPER' };
+      return { icon: 'devices', color: 'var(--color-warning)', badge: 'DEVELOPER' };
     }
     if (name === 'downloads') {
-      return { icon: 'download', color: '#14B8A6', badge: 'DOWNLOADS' };
+      return { icon: 'download', color: 'var(--color-secondary)', badge: 'DOWNLOADS' };
     }
     if (name === 'library') {
-      return { icon: 'folder_special', color: '#8B5CF6', badge: 'LIBRARY' };
+      return { icon: 'folder_special', color: 'var(--color-tertiary)', badge: 'LIBRARY' };
     }
     if (name === 'users') {
-      return { icon: 'group', color: '#14B8A6', badge: 'USERS' };
+      return { icon: 'group', color: 'var(--color-secondary)', badge: 'USERS' };
     }
     if (name.includes('log')) {
-      return { icon: 'list_alt', color: '#8B949E', badge: 'LOGS' };
+      return { icon: 'list_alt', color: 'var(--color-outline)', badge: 'LOGS' };
     }
-    return { icon: isDir ? 'folder' : 'draft', color: '#14B8A6', badge: isDir ? 'FOLDER' : 'FILE' };
+    return { icon: isDir ? 'folder' : 'draft', color: 'var(--color-secondary)', badge: isDir ? 'FOLDER' : 'FILE' };
   }
 
   // Filter and sort items
@@ -169,6 +169,9 @@
                 <span class="category-pill font-mono" style="color: {meta.color}; border-color: {meta.color}40; background: {meta.color}18">
                   {meta.badge}
                 </span>
+                {#if entry.is_sparse}
+                  <span class="category-pill font-mono" title="Sparse file: logical size is larger than the blocks it uses on disk">SPARSE</span>
+                {/if}
               </div>
               <span class="item-path font-mono" title={fullPath}>
                 {fullPath}
@@ -178,7 +181,7 @@
 
           <!-- Center: Size Value + Proportional Bar Gauge -->
           <div class="col-size cell-size">
-            <span class="size-val font-mono" style="color: {size > 30000000000 ? '#F97316' : (size > 10000000000 ? '#F59E0B' : '#14B8A6')}">
+            <span class="size-val font-mono" style="color: {size > 30000000000 ? 'var(--color-primary-container)' : (size > 10000000000 ? 'var(--color-warning)' : 'var(--color-secondary)')}">
               {formatBytes(size, appState.useBinaryUnits)}
             </span>
             <div class="mini-bar-track">
@@ -257,7 +260,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #0B0E14;
+    background: var(--color-surface-container-lowest);
     overflow: hidden;
     user-select: none;
   }
@@ -266,8 +269,8 @@
   .panel-header {
     height: 36px;
     min-height: 36px;
-    background: #101319;
-    border-bottom: 1px solid rgba(88, 66, 55, 0.25);
+    background: var(--color-surface);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.25 * 100%), transparent);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -280,18 +283,18 @@
   }
   .panel-title {
     font-family: var(--font-sans);
-    font-size: 0.8125rem;
+    font-size: var(--text-base);
     font-weight: 600;
-    color: #F0F6FC;
+    color: var(--color-on-surface);
   }
   .items-count-badge {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
     padding: 1px 6px;
     border-radius: 4px;
-    background: #272A31;
-    color: #8B949E;
-    border: 1px solid rgba(88, 66, 55, 0.3);
+    background: var(--color-surface-container-high);
+    color: var(--color-outline);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.3 * 100%), transparent);
   }
 
   /* Sort dropdown button */
@@ -299,36 +302,36 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    background: #191C22;
-    border: 1px solid rgba(88, 66, 55, 0.35);
-    color: #8B949E;
+    background: var(--color-surface-container-low);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
+    color: var(--color-outline);
     border-radius: 6px;
     padding: 2px 8px;
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.12s;
   }
   .sort-dropdown-btn:hover {
-    color: #F0F6FC;
-    border-color: #F97316;
+    color: var(--color-on-surface);
+    border-color: var(--color-primary-container);
   }
   .icon-sort, .icon-chevron {
-    font-size: 14px;
+    font-size: var(--text-lg);
   }
 
   /* Table Header (24px) */
   .table-header {
     height: 24px;
     min-height: 24px;
-    background: #101319;
-    border-bottom: 1px solid rgba(88, 66, 55, 0.2);
+    background: var(--color-surface);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.2 * 100%), transparent);
     display: flex;
     align-items: center;
     padding: 0 12px;
-    font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    color: #8B949E;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-outline);
     letter-spacing: 0.05em;
   }
   .col-name {
@@ -349,26 +352,26 @@
   .table-body {
     flex: 1;
     overflow-y: auto;
-    background: #0B0E14;
+    background: var(--color-surface-container-lowest);
   }
   .table-row {
     display: flex;
     align-items: center;
     padding: 6px 12px;
-    border-bottom: 1px solid rgba(88, 66, 55, 0.12);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.12 * 100%), transparent);
     cursor: pointer;
     transition: background 0.12s;
     height: 48px;
     box-sizing: border-box;
   }
   .table-row:hover {
-    background: #191C22;
+    background: var(--color-surface-container-low);
   }
   .table-row.row-purgeable {
-    background: rgba(244, 63, 94, 0.04);
+    background: color-mix(in srgb, var(--color-error) calc(0.04 * 100%), transparent);
   }
   .table-row.row-purgeable:hover {
-    background: rgba(244, 63, 94, 0.09);
+    background: color-mix(in srgb, var(--color-error) calc(0.09 * 100%), transparent);
   }
 
   /* Cell Meta */
@@ -382,14 +385,14 @@
     width: 24px;
     height: 24px;
     border-radius: 6px;
-    border: 1px solid rgba(88, 66, 55, 0.4);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.4 * 100%), transparent);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
   .row-glyph {
-    font-size: 15px;
+    font-size: var(--text-lg);
   }
   .name-cluster {
     display: flex;
@@ -405,16 +408,16 @@
   }
   .item-name {
     font-family: var(--font-sans);
-    font-size: 0.75rem;
+    font-size: var(--text-base);
     font-weight: 600;
-    color: #F0F6FC;
+    color: var(--color-on-surface);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .category-pill {
-    font-family: var(--font-mono);
-    font-size: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
     font-weight: 700;
     padding: 0 4px;
     border-radius: 3px;
@@ -422,9 +425,9 @@
     flex-shrink: 0;
   }
   .item-path {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: #8B949E;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-outline);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -438,14 +441,14 @@
     gap: 2px;
   }
   .size-val {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
     font-weight: 700;
   }
   .mini-bar-track {
     width: 60px;
     height: 3px;
-    background: #191C22;
+    background: var(--color-surface-container-low);
     border-radius: 2px;
     overflow: hidden;
   }
@@ -469,7 +472,7 @@
     justify-content: center;
     background: transparent;
     border: none;
-    color: #8B949E;
+    color: var(--color-outline);
     border-radius: 4px;
     cursor: pointer;
     opacity: 0;
@@ -479,31 +482,31 @@
     opacity: 1;
   }
   .btn-action-icon:hover {
-    background: #272A31;
-    color: #F0F6FC;
+    background: var(--color-surface-container-high);
+    color: var(--color-on-surface);
   }
   .btn-action-icon.delete:hover {
-    color: #F43F5E;
-    background: rgba(244, 63, 94, 0.15);
+    color: var(--color-error);
+    background: color-mix(in srgb, var(--color-error) calc(0.15 * 100%), transparent);
   }
   .btn-action-icon span {
-    font-size: 15px;
+    font-size: var(--text-lg);
   }
 
   .btn-purge-pill {
     padding: 2px 8px;
-    background: rgba(244, 63, 94, 0.15);
-    border: 1px solid rgba(244, 63, 94, 0.4);
-    color: #ffb4ab;
+    background: color-mix(in srgb, var(--color-error) calc(0.15 * 100%), transparent);
+    border: 1px solid color-mix(in srgb, var(--color-error) calc(0.4 * 100%), transparent);
+    color: var(--color-error);
     border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.12s;
   }
   .btn-purge-pill:hover {
-    background: #F43F5E;
+    background: var(--color-error);
     color: white;
   }
 
@@ -513,8 +516,8 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #8B949E;
-    font-size: 0.75rem;
+    color: var(--color-outline);
+    font-size: var(--text-base);
     padding: 2rem;
   }
 
@@ -522,20 +525,20 @@
   .panel-footer {
     height: 28px;
     min-height: 28px;
-    background: #101319;
-    border-top: 1px solid rgba(88, 66, 55, 0.2);
+    background: var(--color-surface);
+    border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.2 * 100%), transparent);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 12px;
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
   }
   .footer-count {
-    color: #8B949E;
+    color: var(--color-outline);
   }
   .footer-cta {
-    color: #14B8A6;
+    color: var(--color-secondary);
     cursor: pointer;
     transition: color 0.12s;
   }

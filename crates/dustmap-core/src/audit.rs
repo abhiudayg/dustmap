@@ -8,6 +8,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuditAction {
     MovedToTrash,
+    RemovedByTool,
     DeletedPermanently,
     Skipped,
     Stale,

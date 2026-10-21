@@ -13,6 +13,8 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 dustmap-core = { path = "../../crates/dustmap-core" }
+dustmap-rules = { path = "../../crates/dustmap-rules" }
+chrono = { workspace = true }
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 serde = { workspace = true }

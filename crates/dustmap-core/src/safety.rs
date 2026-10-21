@@ -164,6 +164,115 @@ pub fn validate_delete_target(
     Ok(clean_path)
 }
 
+const DENYLIST: &[&str] = &[
+    "/System",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/Library/Apple",
+    "/private/var/db",
+    "/private/var/vm",
+    "/dev",
+    "/Volumes/*/Backups.backupdb",
+    "*.photoslibrary",
+    "~/Library/Keychains",
+    "~/.ssh",
+    "~/.gnupg",
+    "~/Library/Mail",
+    "~/Library/Messages",
+    "~/Library/Photos",
+    "~/Library/Mobile Documents",
+    "~/Library/CloudStorage",
+    "~/Library/Containers/com.apple.*",
+    "~/Library/Group Containers/*.com.apple.*",
+    "~/Library/Application Support/com.apple.TCC",
+    "~/Library/Application Support/AddressBook",
+    "~/Library/Safari",
+    "~/Library/Accounts",
+    "~/Documents",
+    "~/Desktop",
+    "/Applications",
+    "~/Applications",
+];
+
+const DENYLIST_USR_EXCEPTION: &[&str] = &["usr", "local"];
+
+pub fn is_denylisted(path: &Path) -> bool {
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_default();
+    is_denylisted_in(path, &home)
+}
+
+pub fn is_denylisted_in(path: &Path, home: &Path) -> bool {
+    let mut candidates = vec![path.to_path_buf()];
+    if let Ok(canonical) = path.canonicalize() {
+        candidates.push(canonical);
+    }
+    candidates
+        .iter()
+        .any(|candidate| denylist_matches(candidate, home))
+}
+
+fn denylist_matches(path: &Path, home: &Path) -> bool {
+    let path_parts = components(path);
+    let under_usr_local = path_parts.starts_with(DENYLIST_USR_EXCEPTION);
+    DENYLIST.iter().any(|entry| {
+        if *entry == "/usr" && under_usr_local {
+            return false;
+        }
+        if entry.starts_with('*') {
+            return path_parts.iter().any(|part| component_matches(entry, part));
+        }
+        let pattern = match entry.strip_prefix("~/") {
+            Some(rest) => {
+                let mut parts = components(home);
+                parts.extend(rest.split('/'));
+                parts
+            }
+            None => entry.trim_start_matches('/').split('/').collect(),
+        };
+        has_prefix(&path_parts, &pattern)
+    })
+}
+
+fn components(path: &Path) -> Vec<&str> {
+    path.components()
+        .filter_map(|component| match component {
+            Component::Normal(part) => part.to_str(),
+            _ => None,
+        })
+        .collect()
+}
+
+fn has_prefix(parts: &[&str], pattern: &[&str]) -> bool {
+    parts.len() >= pattern.len()
+        && pattern
+            .iter()
+            .zip(parts)
+            .all(|(pattern, part)| component_matches(pattern, part))
+}
+
+fn component_matches(pattern: &str, part: &str) -> bool {
+    let pieces: Vec<&str> = pattern.split('*').collect();
+    if pieces.len() == 1 {
+        return pattern == part;
+    }
+    let first = pieces[0];
+    let last = pieces[pieces.len() - 1];
+    if part.len() < first.len() + last.len() || !part.starts_with(first) || !part.ends_with(last) {
+        return false;
+    }
+    let mut rest = &part[first.len()..part.len() - last.len()];
+    for middle in &pieces[1..pieces.len() - 1] {
+        match rest.find(middle) {
+            Some(index) => rest = &rest[index + middle.len()..],
+            None => return false,
+        }
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -200,5 +309,85 @@ mod tests {
         let target = Path::new("/tmp/other_dir/file.txt");
         let res = validate_delete_target(target, Some(root));
         assert!(matches!(res, Err(SafetyError::OutsideRoot(_, _))));
+    }
+
+    #[test]
+    fn denylist_blocks_user_documents_and_credentials_under_home() {
+        let home = Path::new("/Users/tester");
+        assert!(is_denylisted_in(
+            Path::new("/Users/tester/Documents/a.txt"),
+            home
+        ));
+        assert!(is_denylisted_in(
+            Path::new("/Users/tester/.ssh/id_ed25519"),
+            home
+        ));
+        assert!(is_denylisted_in(
+            Path::new("/Users/tester/Library/Keychains/login.keychain-db"),
+            home
+        ));
+        assert!(!is_denylisted_in(
+            Path::new("/Users/tester/Downloads/a.dmg"),
+            home
+        ));
+    }
+
+    #[test]
+    fn denylist_matches_path_components_not_string_prefixes() {
+        let home = Path::new("/Users/tester");
+        assert!(!is_denylisted_in(
+            Path::new("/Users/tester/dev/project"),
+            home
+        ));
+        assert!(!is_denylisted_in(
+            Path::new("/Users/tester/Desktop2/x"),
+            home
+        ));
+        assert!(!is_denylisted_in(
+            Path::new("/Users/tester/Documentsbak/x"),
+            home
+        ));
+    }
+
+    #[test]
+    fn denylist_allows_usr_local_but_blocks_other_usr_paths() {
+        let home = Path::new("/Users/tester");
+        assert!(!is_denylisted_in(Path::new("/usr/local/Cellar/x"), home));
+        assert!(is_denylisted_in(Path::new("/usr/share/doc"), home));
+    }
+
+    #[test]
+    fn denylist_supports_wildcards_for_backups_photo_libraries_and_apple_containers() {
+        let home = Path::new("/Users/tester");
+        assert!(is_denylisted_in(
+            Path::new("/Volumes/BackupDisk/Backups.backupdb/mac/2026"),
+            home
+        ));
+        assert!(is_denylisted_in(
+            Path::new("/Users/tester/Pictures/Library.photoslibrary/database"),
+            home
+        ));
+        assert!(is_denylisted_in(
+            Path::new("/Users/tester/Library/Containers/com.apple.Notes/Data"),
+            home
+        ));
+        assert!(!is_denylisted_in(
+            Path::new("/Users/tester/Library/Containers/com.example.app/Data"),
+            home
+        ));
+    }
+
+    #[test]
+    fn denylist_blocks_system_paths_at_the_root_only() {
+        let home = Path::new("/Users/tester");
+        assert!(is_denylisted_in(Path::new("/System/Library/Caches"), home));
+        assert!(is_denylisted_in(
+            Path::new("/Applications/Safari.app"),
+            home
+        ));
+        assert!(!is_denylisted_in(
+            Path::new("/Users/tester/Applications-old/x"),
+            home
+        ));
     }
 }

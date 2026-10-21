@@ -1,6 +1,8 @@
 use crate::safety::validate_delete_target;
 use anyhow::{Context, Result};
-use std::path::Path;
+use std::fs;
+use std::os::unix::fs::MetadataExt;
+use std::path::{Path, PathBuf};
 
 /// Move a path to the macOS Trash after strict safety validation.
 pub fn move_to_trash(path: &Path) -> Result<()> {
@@ -27,4 +29,32 @@ pub fn delete_permanently(path: &Path) -> Result<()> {
         std::fs::remove_file(&safe_path)
             .with_context(|| format!("Failed to remove file: {}", safe_path.display()))
     }
+}
+
+pub fn find_in_trash(home: &Path, device: u64, inode: u64) -> Option<PathBuf> {
+    trash_roots(home).into_iter().find_map(|root| {
+        fs::read_dir(&root)
+            .ok()?
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .find(|path| {
+                fs::symlink_metadata(path)
+                    .map(|meta| meta.dev() == device && meta.ino() == inode)
+                    .unwrap_or(false)
+            })
+    })
+}
+
+fn trash_roots(home: &Path) -> Vec<PathBuf> {
+    let mut roots = vec![home.join(".Trash")];
+    let Ok(volumes) = fs::read_dir("/Volumes") else {
+        return roots;
+    };
+    for volume in volumes.filter_map(Result::ok) {
+        let trashes = volume.path().join(".Trashes");
+        if let Ok(uid_dirs) = fs::read_dir(&trashes) {
+            roots.extend(uid_dirs.filter_map(Result::ok).map(|dir| dir.path()));
+        }
+    }
+    roots
 }

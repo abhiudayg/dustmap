@@ -1,20 +1,24 @@
 use dustmap_core::{
+    audit::AuditLog,
+    cleaner::{self, ItemOutcome},
+    data::{self, APP_SUPPORT_RELATIVE},
     index::{EntryId, ROOT_ID},
     ipc::{IpcChildrenResponse, IpcDeleteResult, IpcEntry, IpcScanSummary, VolumeInfo},
-    safety::validate_delete_target,
+    rules::RiskLevel,
     scanner::{scan, ScanOptions, ScanResult},
-    trash::{delete_permanently, move_to_trash},
+    trash::move_to_trash,
     volumes::list_volumes,
 };
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{mpsc, Arc, Mutex};
-use tauri::State;
+use tauri::{Emitter, State};
 
 pub struct ScanStore {
     pub scans: HashMap<String, ScanResult>,
     pub cancel_flags: HashMap<String, Arc<AtomicBool>>,
+    pub active_cancel: Option<Arc<AtomicBool>>,
 }
 
 pub type SharedScanStore = Arc<Mutex<ScanStore>>;
@@ -58,6 +62,7 @@ fn entry_to_ipc(result: &dustmap_core::scanner::ScanResult, entry_id: EntryId) -
         logical_bytes: entry.logical_bytes,
         allocated_bytes: entry.allocated_bytes,
         is_hidden: entry.is_hidden,
+        is_sparse: entry.is_sparse,
         modified_secs: entry.modified_secs,
         coverage: entry.coverage,
         child_count,
@@ -66,36 +71,67 @@ fn entry_to_ipc(result: &dustmap_core::scanner::ScanResult, entry_id: EntryId) -
     })
 }
 
+pub fn app_support_dir() -> Result<PathBuf, String> {
+    std::env::var_os("HOME")
+        .map(|home| PathBuf::from(home).join(APP_SUPPORT_RELATIVE))
+        .ok_or_else(|| "HOME is not set".to_string())
+}
+
 #[tauri::command]
 pub async fn list_volumes_cmd() -> Result<Vec<VolumeInfo>, String> {
     list_volumes().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn start_scan(path: String, state: State<'_, SharedScanStore>) -> Result<String, String> {
+pub async fn start_scan(
+    app: tauri::AppHandle,
+    path: String,
+    state: State<'_, SharedScanStore>,
+) -> Result<String, String> {
     let scan_id = uuid::Uuid::new_v4().to_string();
     let cancel = Arc::new(AtomicBool::new(false));
 
     let root = PathBuf::from(&path);
     let options = ScanOptions::default();
-    let cancel_clone = cancel.clone();
-
     let (tx, rx) = mpsc::channel();
+    let state_dir = app_support_dir()?;
+    data::mark_scan_started(&state_dir, &root).map_err(|e| e.to_string())?;
+    state.lock().map_err(|e| e.to_string())?.active_cancel = Some(cancel.clone());
 
-    // Run scan in blocking thread
-    let result = tokio::task::spawn_blocking(move || scan(&root, options, cancel_clone, tx))
+    std::thread::spawn(move || {
+        for progress in rx {
+            let _ = app.emit("scan-progress", &progress);
+        }
+    });
+
+    let scan_cancel = cancel.clone();
+    let outcome = tokio::task::spawn_blocking(move || scan(&root, options, scan_cancel, tx))
         .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())?;
-
-    // Drain any remaining progress messages
-    while rx.try_recv().is_ok() {}
+        .map_err(|e| e.to_string())
+        .and_then(|result| result.map_err(|e| e.to_string()));
+    state.lock().map_err(|e| e.to_string())?.active_cancel = None;
+    let result = outcome?;
+    let cache_dir = state_dir.join("scan-cache");
+    if let Err(err) =
+        dustmap_core::scan_cache::save(&cache_dir, &result, chrono::Utc::now().timestamp())
+    {
+        eprintln!("scan cache was not saved: {err:#}");
+    }
+    data::mark_scan_finished(&state_dir).map_err(|e| e.to_string())?;
 
     let mut store = state.lock().map_err(|e| e.to_string())?;
     store.scans.insert(scan_id.clone(), result);
     store.cancel_flags.insert(scan_id.clone(), cancel);
-
     Ok(scan_id)
+}
+
+#[tauri::command]
+pub fn cancel_scan(state: State<'_, SharedScanStore>) -> Result<(), String> {
+    let store = state.lock().map_err(|e| e.to_string())?;
+    if let Some(flag) = &store.active_cancel {
+        flag.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -190,25 +226,53 @@ pub async fn delete_path(
     parent_id: Option<u32>,
     state: State<'_, SharedScanStore>,
 ) -> Result<IpcDeleteResult, String> {
-    let p = PathBuf::from(&path);
-
-    // Validate path against safety rules (no deleting /System, root, SIP, or outside boundaries)
-    if let Err(safety_err) = validate_delete_target(&p, None) {
+    if permanent {
         return Ok(IpcDeleteResult {
             path,
             success: false,
-            error: Some(format!("Safety Protection: {}", safety_err)),
+            error: Some(
+                "Permanent deletion is not available; items are moved to Trash.".to_string(),
+            ),
+        });
+    }
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .ok_or_else(|| "HOME is not set".to_string())?;
+    let candidate =
+        cleaner::candidate_for(&PathBuf::from(&path), "manual-delete", RiskLevel::Review)
+            .map_err(|e| format!("Cannot read {path}: {e}"))?;
+    let preview = cleaner::preview(
+        scan_id.as_deref().unwrap_or("manual"),
+        vec![candidate],
+        Vec::new(),
+        &home,
+    );
+    if let Some(rejection) = preview.rejected.first() {
+        return Ok(IpcDeleteResult {
+            path,
+            success: false,
+            error: Some(format!(
+                "Safety Protection: {} is protected",
+                rejection.label
+            )),
         });
     }
 
-    let result = if permanent {
-        delete_permanently(&p)
-    } else {
-        move_to_trash(&p)
-    };
-    match result {
-        Ok(()) => {
-            // Remove entry from parent's children in memory if active scan
+    let support = home.join(APP_SUPPORT_RELATIVE);
+    let audit = AuditLog::new(support.join("audit.jsonl"));
+    let operation_id = uuid::Uuid::new_v4().to_string();
+    let results = cleaner::execute(
+        &operation_id,
+        &preview,
+        &support.join("journal"),
+        &audit,
+        &home,
+        move_to_trash,
+    )
+    .map_err(|e| e.to_string())?;
+    let outcome = results.first().map(|result| result.outcome.clone());
+    match outcome {
+        Some(ItemOutcome::MovedToTrash) => {
             if let (Some(sid), Some(eid), Some(pid)) = (scan_id, entry_id, parent_id) {
                 if let Ok(mut store) = state.lock() {
                     if let Some(scan_res) = store.scans.get_mut(&sid) {
@@ -222,11 +286,28 @@ pub async fn delete_path(
                 error: None,
             })
         }
-        Err(e) => Ok(IpcDeleteResult {
+        Some(other) => Ok(IpcDeleteResult {
             path,
             success: false,
-            error: Some(e.to_string()),
+            error: Some(describe_failure(&other)),
         }),
+        None => Ok(IpcDeleteResult {
+            path,
+            success: false,
+            error: Some("Nothing was deleted".to_string()),
+        }),
+    }
+}
+
+fn describe_failure(outcome: &ItemOutcome) -> String {
+    match outcome {
+        ItemOutcome::SkippedStale => {
+            "The item changed since it was scanned; rescan and try again.".to_string()
+        }
+        ItemOutcome::SkippedProtected => "Safety Protection: protected path".to_string(),
+        ItemOutcome::Failed { reason } => reason.clone(),
+        ItemOutcome::TimedOut => "The operation timed out".to_string(),
+        ItemOutcome::MovedToTrash | ItemOutcome::RemovedByTool => "Unexpected outcome".to_string(),
     }
 }
 
@@ -246,4 +327,93 @@ pub async fn save_report_file(content: String, filename: String) -> Result<Strin
     }
 
     Ok(target.display().to_string())
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct StartupReport {
+    pub interrupted_scan: Option<String>,
+    pub items_needing_review: Vec<String>,
+    pub quarantined_journals: Vec<String>,
+    pub errors: Vec<String>,
+}
+
+pub fn run_startup_checks() -> StartupReport {
+    let mut report = StartupReport {
+        interrupted_scan: None,
+        items_needing_review: Vec::new(),
+        quarantined_journals: Vec::new(),
+        errors: Vec::new(),
+    };
+    let support = match app_support_dir() {
+        Ok(support) => support,
+        Err(err) => {
+            report.errors.push(err);
+            return report;
+        }
+    };
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_default();
+    match dustmap_core::journal::reconcile(&support.join("journal"), &home) {
+        Ok(reconciled) => {
+            report.items_needing_review = reconciled
+                .items
+                .iter()
+                .filter(|item| item.needs_user_review)
+                .map(|item| format!("{} {}", item.operation_id, item.item_id))
+                .collect();
+            report.quarantined_journals = reconciled
+                .quarantined
+                .iter()
+                .map(|path| path.display().to_string())
+                .collect();
+        }
+        Err(err) => report
+            .errors
+            .push(format!("journal reconciliation failed: {err}")),
+    }
+    match data::interrupted_scan(&support) {
+        Ok(root) => report.interrupted_scan = root.map(|path| path.display().to_string()),
+        Err(err) => report.errors.push(format!("scan state unreadable: {err}")),
+    }
+    report
+}
+
+#[tauri::command]
+pub fn startup_report(report: State<'_, StartupReport>) -> StartupReport {
+    report.inner().clone()
+}
+
+#[tauri::command]
+pub fn dismiss_interrupted_scan() -> Result<(), String> {
+    data::mark_scan_finished(&app_support_dir()?).map_err(|e| e.to_string())
+}
+
+#[derive(serde::Serialize)]
+pub struct CachedScanInfo {
+    pub scan_id: String,
+    pub scanned_at_secs: i64,
+}
+
+#[tauri::command]
+pub fn load_cached_scan(
+    path: String,
+    state: State<'_, SharedScanStore>,
+) -> Result<Option<CachedScanInfo>, String> {
+    let cache_dir = app_support_dir()?.join("scan-cache");
+    let Some(cached) = dustmap_core::scan_cache::load(&cache_dir, &PathBuf::from(&path))
+        .map_err(|e| format!("{e:#}"))?
+    else {
+        return Ok(None);
+    };
+    let scan_id = uuid::Uuid::new_v4().to_string();
+    let mut store = state.lock().map_err(|e| e.to_string())?;
+    store.scans.insert(scan_id.clone(), cached.result);
+    store
+        .cancel_flags
+        .insert(scan_id.clone(), Arc::new(AtomicBool::new(false)));
+    Ok(Some(CachedScanInfo {
+        scan_id,
+        scanned_at_secs: cached.scanned_at_secs,
+    }))
 }

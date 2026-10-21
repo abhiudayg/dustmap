@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { VolumeInfo, IpcScanSummary, IpcChildrenResponse, IpcDeleteResult, IpcEntry } from './types';
+import type { VolumeInfo, IpcScanSummary, IpcChildrenResponse, IpcDeleteResult, IpcEntry, StartupReport, CleanupPreview, CleanupResult, Remnant, DataEntry, CachedScanInfo } from './types';
 
 export async function listVolumes(): Promise<VolumeInfo[]> {
   return invoke<VolumeInfo[]>('list_volumes_cmd');
@@ -43,4 +43,48 @@ export async function deletePath(
     entryId: entryId ?? null,
     parentId: parentId ?? null,
   });
+}
+
+export async function startupReport(): Promise<StartupReport> {
+  return invoke<StartupReport>('startup_report');
+}
+
+export async function cleanupPreview(): Promise<CleanupPreview> {
+  return invoke<CleanupPreview>('cleanup_preview');
+}
+
+export async function cleanupExecute(ruleIds: string[], confirmed: boolean): Promise<CleanupResult[]> {
+  return invoke<CleanupResult[]>('cleanup_execute', { ruleIds, confirmed });
+}
+
+export async function remnantSearch(bundleId: string): Promise<Remnant[]> {
+  return invoke<Remnant[]>('remnant_search', { bundleId });
+}
+
+export async function remnantRemove(bundleId: string, paths: string[], confirmCaution: boolean): Promise<string[]> {
+  return invoke<string[]>('remnant_remove', { bundleId, paths, confirmCaution });
+}
+
+export async function dataList(): Promise<DataEntry[]> {
+  return invoke<DataEntry[]>('data_list');
+}
+
+export async function dataRemove(labels: string[]): Promise<string[]> {
+  return invoke<string[]>('data_remove', { labels });
+}
+
+export async function acknowledgeQuarantine(): Promise<void> {
+  return invoke<void>('acknowledge_quarantine');
+}
+
+export async function cancelScan(): Promise<void> {
+  return invoke<void>('cancel_scan');
+}
+
+export async function dismissInterruptedScan(): Promise<void> {
+  return invoke<void>('dismiss_interrupted_scan');
+}
+
+export async function loadCachedScan(path: string): Promise<CachedScanInfo | null> {
+  return invoke<CachedScanInfo | null>('load_cached_scan', { path });
 }

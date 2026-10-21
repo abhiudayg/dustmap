@@ -27,6 +27,12 @@
     {#if appState.summary}
       <span class="sep">/</span>
       <span class="mapped-size">{formatBytes(mappedBytes, appState.useBinaryUnits)} Mapped</span>
+      {#if appState.scanCachedAt}
+        <span class="logical-size" title="Loaded from the saved scan. Press Scan Volume to rescan.">cached {new Date(appState.scanCachedAt * 1000).toLocaleString()}</span>
+      {/if}
+      {#if appState.summary && appState.metric === "allocated"}
+        <span class="logical-size" title="Logical size: sum of declared file lengths, including sparse files">logical {formatBytes(appState.summary.total_logical, appState.useBinaryUnits)}</span>
+      {/if}
     {/if}
   </div>
 
@@ -42,8 +48,8 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.35rem 0.875rem;
-    background: #101319;
-    border-bottom: 1px solid rgba(88, 66, 55, 0.25);
+    background: var(--color-surface);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.25 * 100%), transparent);
     min-height: 32px;
     user-select: none;
     overflow-x: auto;
@@ -55,29 +61,29 @@
     white-space: nowrap;
   }
   .folder-icon {
-    font-size: 0.875rem;
+    font-size: var(--text-lg);
   }
   .sep {
-    color: #484F58;
-    font-size: 0.75rem;
+    color: var(--color-outline-variant);
+    font-size: var(--text-base);
   }
   .crumb {
     background: none;
     border: none;
-    color: #8B949E;
-    font-size: 0.8125rem;
+    color: var(--color-outline);
+    font-size: var(--text-base);
     cursor: pointer;
     padding: 0.15rem 0.35rem;
     border-radius: 4px;
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     transition: all 0.12s;
   }
   .crumb:hover {
-    color: #F0F6FC;
-    background: #272A31;
+    color: var(--color-on-surface);
+    background: var(--color-surface-container-high);
   }
   .crumb.current {
-    color: #F0F6FC;
+    color: var(--color-on-surface);
     font-weight: 600;
     cursor: default;
   }
@@ -85,10 +91,10 @@
     background: none;
   }
   .mapped-size {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
     font-weight: 600;
-    color: #4FDCB8;
+    color: var(--color-secondary);
   }
   .algo-badges {
     display: flex;
@@ -96,17 +102,17 @@
     gap: 0.375rem;
   }
   .badge {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
     padding: 0.125rem 0.375rem;
     border-radius: 4px;
-    background: #1D2026;
-    color: #8B949E;
-    border: 1px solid #32353C;
+    background: var(--color-surface-container-high);
+    color: var(--color-outline);
+    border: 1px solid var(--color-surface-container-highest);
   }
   .badge.algo {
-    color: #F97316;
-    background: rgba(249, 115, 22, 0.1);
-    border-color: rgba(249, 115, 22, 0.3);
+    color: var(--color-primary-container);
+    background: color-mix(in srgb, var(--color-primary-container) calc(0.1 * 100%), transparent);
+    border-color: color-mix(in srgb, var(--color-primary-container) calc(0.3 * 100%), transparent);
   }
 </style>

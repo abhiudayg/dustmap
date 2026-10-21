@@ -14,6 +14,7 @@ pub struct IpcEntry {
     pub logical_bytes: u64,
     pub allocated_bytes: Option<u64>,
     pub is_hidden: bool,
+    pub is_sparse: bool,
     pub modified_secs: i64,
     pub coverage: Coverage,
     /// Only present for directories

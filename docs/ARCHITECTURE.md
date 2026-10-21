@@ -143,3 +143,23 @@ DustMap includes a 23-point verification suite executed via `.verify/run.sh`:
   - **Identity:** `Developer ID Application: Abhiuday Gupta (9HSMVVUMVX)`
   - **Entitlements:** Full Disk Access (`entitlements.plist`)
   - **Distribution:** Compressed Universal/ARM64 Disk Image (`DustMap_0.1.0_aarch64.dmg`) with background presentation and Applications symlink.
+
+## 6. Implementation Status (PRD v3.1)
+
+The PRD is not fully complete. Core-engine items are implemented and tested. The open items are UI parity with the reference designs, permanent deletion, and one unverified release path.
+
+| Area | Module(s) | Status |
+|---|---|---|
+| Journal and reconciliation | `journal.rs` | Done, with tests |
+| Denylist and safety gate | `safety.rs`, `trash.rs` | Done, with tests |
+| Cleaner pipeline | `cleaner.rs` | Done, with tests; Trash only |
+| Tool-command targets | `toolcmd.rs` | Done, with tests |
+| Remnant detection | `remnants.rs` | Done, with tests; removal via Trash in App Cleanups |
+| Local snapshot report | `snapshots.rs` | Done |
+| Rules engine | `dustmap-rules` | Done, with tests |
+| Your Data and cask zap | `data.rs`, `packaging/` | Done, with tests |
+| Scan cache | `scan_cache.rs` | Implemented; restart flow not yet verified end-to-end |
+| CLI subcommands | `dustmap-cli` | Done |
+| Permanent deletion | — | Not implemented; decision pending |
+| Overview, delete modal, folder explorer, splash | `app/src/components/` | Not yet matched to the reference designs |
+| Notarized CI release | `.github/workflows/release.yml` | Notarization verified locally; CI run not yet verified |

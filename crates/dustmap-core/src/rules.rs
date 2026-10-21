@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 /// Risk level for a cleanup rule.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum RiskLevel {
     Safe,
     Review,

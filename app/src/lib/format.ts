@@ -22,17 +22,17 @@ export function usagePercent(used: number, total: number): number {
 }
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  Applications: '#F97316', // Amber-Orange
-  Users: '#04B4A2',        // APFS Teal
-  Library: '#A985FF',      // Telemetry Violet
-  Developer: '#FFB690',    // Peach Glow
-  System: '#334155',       // Deep Slate
-  Downloads: '#38BDF8',    // Sky Cyan
-  '.Trash': '#EF4444',     // Crimson
-  default: '#272A31',
+  Applications: 'var(--color-primary-container)', // Amber-Orange
+  Users: 'var(--color-secondary)',        // APFS Teal
+  Library: 'var(--color-tertiary)',      // Telemetry Violet
+  Developer: 'var(--color-primary)',    // Peach Glow
+  System: 'var(--color-outline-variant)',       // Deep Slate
+  Downloads: 'var(--color-secondary)',    // Sky Cyan
+  '.Trash': 'var(--color-error)',     // Crimson
+  default: 'var(--color-surface-container-high)',
 };
 
 export function colorForEntry(name: string, isHidden: boolean): string {
-  if (isHidden) return '#991B1B';
+  if (isHidden) return 'var(--color-error)';
   return CATEGORY_COLORS[name] ?? CATEGORY_COLORS.default;
 }

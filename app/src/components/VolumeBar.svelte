@@ -202,9 +202,9 @@
   .stitch-header {
     height: 44px;
     min-height: 44px;
-    background: rgba(16, 19, 25, 0.96);
+    background: color-mix(in srgb, var(--color-surface) calc(0.96 * 100%), transparent);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(88, 66, 55, 0.35);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -226,7 +226,7 @@
   .header-divider {
     height: 16px;
     width: 1px;
-    background: rgba(88, 66, 55, 0.35);
+    background: color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
   }
 
   /* App Branding */
@@ -240,15 +240,15 @@
     width: 22px;
     height: 22px;
     border-radius: 6px;
-    background: #272A31;
-    border: 1px solid rgba(249, 115, 22, 0.4);
+    background: var(--color-surface-container-high);
+    border: 1px solid color-mix(in srgb, var(--color-primary-container) calc(0.4 * 100%), transparent);
     display: flex;
     align-items: center;
     justify-content: center;
   }
   .brand-glyph {
-    font-size: 14px;
-    color: #F97316;
+    font-size: var(--text-lg);
+    color: var(--color-primary-container);
   }
   .beacon-dot {
     position: absolute;
@@ -257,8 +257,8 @@
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: #14B8A6;
-    box-shadow: 0 0 4px #14B8A6;
+    background: var(--color-secondary);
+    box-shadow: 0 0 4px var(--color-secondary);
     animation: beacon 2.2s infinite ease-in-out;
   }
   @keyframes beacon {
@@ -268,18 +268,18 @@
   .brand-name {
     font-family: var(--font-sans);
     font-weight: 700;
-    font-size: 0.875rem;
-    color: #F0F6FC;
+    font-size: var(--text-lg);
+    color: var(--color-on-surface);
     letter-spacing: -0.02em;
   }
   .brand-ver {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: #8B949E;
-    background: #272A31;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-outline);
+    background: var(--color-surface-container-high);
     padding: 1px 5px;
     border-radius: 4px;
-    border: 1px solid rgba(88, 66, 55, 0.4);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.4 * 100%), transparent);
   }
 
   /* Search Input */
@@ -291,42 +291,42 @@
   .search-icon {
     position: absolute;
     left: 8px;
-    font-size: 15px;
-    color: #8B949E;
+    font-size: var(--text-lg);
+    color: var(--color-outline);
     pointer-events: none;
   }
   .search-input {
     width: 200px;
     height: 28px;
-    background: #191C22;
-    border: 1px solid rgba(88, 66, 55, 0.35);
+    background: var(--color-surface-container-low);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
     border-radius: 8px;
     padding-left: 28px;
     padding-right: 36px;
     font-family: var(--font-sans);
-    font-size: 0.75rem;
-    color: #F0F6FC;
+    font-size: var(--text-base);
+    color: var(--color-on-surface);
     outline: none;
     transition: all 0.15s;
   }
   .search-input::placeholder {
-    color: rgba(139, 148, 158, 0.6);
+    color: color-mix(in srgb, var(--color-outline) calc(0.6 * 100%), transparent);
   }
   .search-input:focus {
-    border-color: #14B8A6;
-    box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2);
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-secondary) calc(0.2 * 100%), transparent);
     width: 240px;
   }
   .search-kbd {
     position: absolute;
     right: 8px;
-    font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    color: #8B949E;
-    background: #272A31;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-outline);
+    background: var(--color-surface-container-high);
     padding: 1px 4px;
     border-radius: 3px;
-    border: 1px solid #32353C;
+    border: 1px solid var(--color-surface-container-highest);
     pointer-events: none;
   }
   .search-clear {
@@ -334,9 +334,9 @@
     right: 8px;
     background: none;
     border: none;
-    color: #8B949E;
+    color: var(--color-outline);
     cursor: pointer;
-    font-size: 14px;
+    font-size: var(--text-lg);
     padding: 2px 4px;
   }
 
@@ -353,62 +353,62 @@
     height: 28px;
     padding: 0 10px;
     border-radius: 6px;
-    background: #191C22;
-    border: 1px solid rgba(88, 66, 55, 0.4);
-    color: #F0F6FC;
+    background: var(--color-surface-container-low);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.4 * 100%), transparent);
+    color: var(--color-on-surface);
     cursor: pointer;
     transition: all 0.15s;
     white-space: nowrap;
   }
   .volume-dropdown-trigger:hover, .volume-dropdown-trigger.open {
-    background: #272A31;
-    border-color: #F97316;
+    background: var(--color-surface-container-high);
+    border-color: var(--color-primary-container);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
   }
   .drive-icon {
-    font-size: 16px;
-    color: #F97316;
+    font-size: var(--text-lg);
+    color: var(--color-primary-container);
   }
   .drive-title {
     font-family: var(--font-sans);
-    font-size: 0.75rem;
+    font-size: var(--text-base);
     font-weight: 600;
     color: inherit;
   }
   .drive-type-badge {
-    font-family: var(--font-mono);
-    font-size: 0.5625rem;
-    color: #8B949E;
-    background: #101319;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-outline);
+    background: var(--color-surface);
     padding: 1px 4px;
     border-radius: 3px;
-    border: 1px solid rgba(88, 66, 55, 0.35);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
   }
   .gauge-bar {
     width: 48px;
     height: 4px;
-    background: #101319;
+    background: var(--color-surface);
     border-radius: 2px;
     overflow: hidden;
   }
   .gauge-fill {
     height: 100%;
-    background: #F97316;
+    background: var(--color-primary-container);
     border-radius: 2px;
   }
   .gauge-label {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: #8B949E;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
+    color: var(--color-outline);
   }
   .dropdown-caret {
-    font-size: 16px;
-    color: #8B949E;
+    font-size: var(--text-lg);
+    color: var(--color-outline);
     margin-left: 2px;
     transition: transform 0.15s;
   }
   .volume-dropdown-trigger:hover .dropdown-caret, .volume-dropdown-trigger.open .dropdown-caret {
-    color: #F97316;
+    color: var(--color-primary-container);
   }
   .disks-dropdown-menu {
     position: absolute;
@@ -416,8 +416,8 @@
     left: 50%;
     transform: translateX(-50%);
     width: 290px;
-    background: #161B22;
-    border: 1px solid rgba(249, 115, 22, 0.4);
+    background: var(--color-surface-container-low);
+    border: 1px solid color-mix(in srgb, var(--color-primary-container) calc(0.4 * 100%), transparent);
     border-radius: 8px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85);
     padding: 4px;
@@ -428,9 +428,9 @@
   }
   .dropdown-header {
     padding: 6px 8px;
-    font-size: 0.5625rem;
-    color: #8B949E;
-    border-bottom: 1px solid rgba(88, 66, 55, 0.2);
+    font-size: var(--text-sm);
+    color: var(--color-outline);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.2 * 100%), transparent);
     letter-spacing: 0.05em;
   }
   .dropdown-disk-item {
@@ -441,21 +441,21 @@
     border-radius: 6px;
     background: transparent;
     border: none;
-    color: #8B949E;
+    color: var(--color-outline);
     cursor: pointer;
     text-align: left;
     transition: all 0.12s;
   }
   .dropdown-disk-item:hover {
-    background: #21262D;
-    color: #F0F6FC;
+    background: var(--color-surface-container-high);
+    color: var(--color-on-surface);
   }
   .dropdown-disk-item.active {
-    background: rgba(249, 115, 22, 0.12);
-    color: #F97316;
+    background: color-mix(in srgb, var(--color-primary-container) calc(0.12 * 100%), transparent);
+    color: var(--color-primary-container);
   }
   .disk-icon {
-    font-size: 16px;
+    font-size: var(--text-lg);
     color: inherit;
   }
   .disk-info {
@@ -472,26 +472,26 @@
   }
   .disk-name {
     font-family: var(--font-sans);
-    font-size: 0.6875rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     color: inherit;
   }
   .disk-fs {
-    font-size: 0.5625rem;
-    color: #8B949E;
+    font-size: var(--text-sm);
+    color: var(--color-outline);
   }
   .disk-stats-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.5625rem;
-    color: #8B949E;
+    font-size: var(--text-sm);
+    color: var(--color-outline);
   }
   .pct-tag {
-    color: #14B8A6;
+    color: var(--color-secondary);
   }
   .checkmark {
-    font-size: 14px;
-    color: #14B8A6;
+    font-size: var(--text-lg);
+    color: var(--color-secondary);
   }
 
   /* Right Action Controls */
@@ -509,22 +509,22 @@
     padding: 4px 10px;
     height: 28px;
     border-radius: 6px;
-    background: #1D2026;
-    border: 1px solid rgba(88, 66, 55, 0.35);
-    color: #F0F6FC;
+    background: var(--color-surface-container-high);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
+    color: var(--color-on-surface);
     font-family: var(--font-sans);
-    font-size: 0.75rem;
+    font-size: var(--text-base);
     cursor: pointer;
     transition: all 0.15s;
   }
   .btn-purge:hover, .btn-purge.active {
-    background: #272A31;
-    border-color: #14B8A6;
-    color: #14B8A6;
+    background: var(--color-surface-container-high);
+    border-color: var(--color-secondary);
+    color: var(--color-secondary);
   }
   .icon-mop {
-    font-size: 15px;
-    color: #14B8A6;
+    font-size: var(--text-lg);
+    color: var(--color-secondary);
   }
 
   .btn-rescan {
@@ -534,18 +534,18 @@
     padding: 4px 12px;
     height: 28px;
     border-radius: 6px;
-    background: #F97316;
+    background: var(--color-primary-container);
     border: none;
-    color: #0E1117;
+    color: var(--color-surface);
     font-family: var(--font-sans);
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: var(--text-base);
     cursor: pointer;
-    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-primary-container) calc(0.4 * 100%), transparent);
     transition: all 0.15s;
   }
   .btn-rescan:hover:not(:disabled) {
-    background: #EA580C;
+    background: var(--color-primary-container);
     transform: translateY(-0.5px);
   }
   .btn-rescan:disabled {
@@ -553,7 +553,7 @@
     cursor: default;
   }
   .icon-refresh {
-    font-size: 16px;
+    font-size: var(--text-lg);
     font-weight: bold;
   }
   .icon-refresh.spinning {
@@ -563,13 +563,13 @@
     to { transform: rotate(360deg); }
   }
   .kbd-pill {
-    font-family: var(--font-mono);
-    font-size: 0.5625rem;
+    font-family: var(--font-sans);
+    font-size: var(--text-sm);
     font-weight: 700;
     background: rgba(0, 0, 0, 0.25);
     padding: 1px 4px;
     border-radius: 3px;
-    color: #0E1117;
+    color: var(--color-surface);
   }
 
   .btn-export {
@@ -579,21 +579,21 @@
     padding: 4px 10px;
     height: 28px;
     border-radius: 6px;
-    background: #1D2026;
-    border: 1px solid rgba(88, 66, 55, 0.35);
-    color: #F0F6FC;
+    background: var(--color-surface-container-high);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
+    color: var(--color-on-surface);
     font-family: var(--font-sans);
-    font-size: 0.75rem;
+    font-size: var(--text-base);
     cursor: pointer;
     transition: all 0.15s;
   }
   .btn-export:hover {
-    background: #272A31;
-    border-color: #F97316;
-    color: #F97316;
+    background: var(--color-surface-container-high);
+    border-color: var(--color-primary-container);
+    color: var(--color-primary-container);
   }
   .icon-export {
-    font-size: 15px;
-    color: #14B8A6;
+    font-size: var(--text-lg);
+    color: var(--color-secondary);
   }
 </style>

@@ -8,7 +8,7 @@ use walkdir::WalkDir;
 use crate::index::{Coverage, Entry, EntryId, EntryKind, Index, ROOT_ID};
 use crate::metadata::read_metadata;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ScanProgress {
     pub entries_seen: u64,
     pub bytes_accounted: u64,
@@ -17,7 +17,7 @@ pub struct ScanProgress {
     pub current_path: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScanError {
     pub path: String,
     pub reason: String,
@@ -30,6 +30,7 @@ pub struct ScanOptions {
     pub exclusions: Vec<PathBuf>,
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct ScanResult {
     pub index: Index,
     pub root: PathBuf,
@@ -200,7 +201,7 @@ pub fn scan(
                 } else {
                     None
                 };
-                let bytes = meta.logical_bytes;
+                let bytes = meta.allocated_bytes.unwrap_or(0);
                 let entry = Entry {
                     id: entry_id,
                     parent: parent_id,

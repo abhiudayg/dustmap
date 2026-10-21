@@ -20,7 +20,11 @@
         "resizable": true,
         "fullscreen": false,
         "titleBarStyle": "Overlay",
-        "hiddenTitle": true
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 10,
+          "y": 24
+        }
       }
     ],
     "security": {
@@ -29,7 +33,13 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app"],
+    "targets": [
+      "app",
+      "dmg"
+    ],
+    "resources": {
+      "../../rules": "rules"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

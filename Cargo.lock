@@ -856,7 +856,9 @@ name = "dustmap-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "dustmap-core",
+ "dustmap-rules",
  "serde",
  "serde_json",
  "tauri",
@@ -871,11 +873,13 @@ name = "dustmap-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "dustmap-core",
  "dustmap-rules",
  "serde_json",
  "tokio",
+ "uuid",
 ]
 
 [[package]]
@@ -902,6 +906,7 @@ name = "dustmap-rules"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dustmap-core",
  "serde",
  "thiserror 1.0.69",
  "toml 0.8.2",

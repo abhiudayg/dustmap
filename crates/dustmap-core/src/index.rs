@@ -48,7 +48,7 @@ pub struct DirAggregate {
     pub coverage: Coverage,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Index {
     entries: Vec<Entry>,
     children: Vec<Vec<EntryId>>,

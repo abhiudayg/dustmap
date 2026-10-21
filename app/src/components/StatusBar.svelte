@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { appState, toggleMetric, toggleUnits } from '../lib/store.svelte';
+  import { appState, toggleMetric, toggleUnits, getEntrySize } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
 
   const vol = $derived(appState.currentVolume);
@@ -14,7 +14,7 @@
         const n = e.name.toLowerCase();
         return n.includes('cache') || n.includes('tmp') || n.includes('deriveddata');
       })
-      .reduce((sum, e) => sum + (e.total_allocated ?? e.allocated_bytes ?? e.total_logical ?? e.logical_bytes ?? 0), 0);
+      .reduce((sum, e) => sum + getEntrySize(e), 0);
   });
 </script>
 
@@ -93,14 +93,14 @@
   .stitch-footer {
     height: 26px;
     min-height: 26px;
-    background: #0B0E14;
-    border-top: 1px solid rgba(88, 66, 55, 0.3);
+    background: var(--color-surface-container-lowest);
+    border-top: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.3 * 100%), transparent);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 12px;
-    font-size: 0.625rem;
-    color: #8B949E;
+    font-size: var(--text-sm);
+    color: var(--color-outline);
     user-select: none;
     z-index: 40;
     white-space: nowrap;
@@ -124,14 +124,14 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #10B981;
-    box-shadow: 0 0 6px #10B981;
+    background: var(--color-secondary);
+    box-shadow: 0 0 6px var(--color-secondary);
     flex-shrink: 0;
     animation: beacon 2s infinite ease-in-out;
   }
   .beacon-pulse.scanning {
-    background: #F97316;
-    box-shadow: 0 0 8px #F97316;
+    background: var(--color-primary-container);
+    box-shadow: 0 0 8px var(--color-primary-container);
     animation: beacon 0.8s infinite ease-in-out;
   }
   @keyframes beacon {
@@ -140,20 +140,20 @@
   }
 
   .status-state-text {
-    color: #F0F6FC;
+    color: var(--color-on-surface);
     font-weight: 500;
   }
   .status-state-text.scanning {
-    color: #F97316;
+    color: var(--color-primary-container);
   }
 
   .pipe-sep {
-    color: rgba(139, 148, 158, 0.3);
+    color: color-mix(in srgb, var(--color-outline) calc(0.3 * 100%), transparent);
     margin: 0 2px;
   }
 
   .telemetry-item {
-    color: #8B949E;
+    color: var(--color-outline);
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -166,51 +166,51 @@
   }
 
   .fs-label {
-    color: #8B949E;
+    color: var(--color-outline);
   }
 
   .dot-sep {
-    color: rgba(139, 148, 158, 0.4);
+    color: color-mix(in srgb, var(--color-outline) calc(0.4 * 100%), transparent);
   }
 
   .purgeable-pill {
     padding: 1px 6px;
     border-radius: 4px;
-    background: rgba(20, 184, 166, 0.15);
-    color: #14B8A6;
-    border: 1px solid rgba(20, 184, 166, 0.35);
+    background: color-mix(in srgb, var(--color-secondary) calc(0.15 * 100%), transparent);
+    color: var(--color-secondary);
+    border: 1px solid color-mix(in srgb, var(--color-secondary) calc(0.35 * 100%), transparent);
     font-weight: 600;
   }
 
   .perm-badge-btn {
-    background: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #F59E0B;
+    background: color-mix(in srgb, var(--color-warning) calc(0.12 * 100%), transparent);
+    border: 1px solid color-mix(in srgb, var(--color-warning) calc(0.35 * 100%), transparent);
+    color: var(--color-warning);
     border-radius: 4px;
     padding: 1px 6px;
     font-family: inherit;
-    font-size: 0.5625rem;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.12s;
   }
   .perm-badge-btn:hover {
-    background: rgba(245, 158, 11, 0.25);
-    color: #FBBF24;
+    background: color-mix(in srgb, var(--color-warning) calc(0.25 * 100%), transparent);
+    color: var(--color-warning);
   }
 
   .quick-toggle-btn {
-    background: #191C22;
-    border: 1px solid rgba(88, 66, 55, 0.35);
-    color: #8B949E;
+    background: var(--color-surface-container-low);
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.35 * 100%), transparent);
+    color: var(--color-outline);
     border-radius: 4px;
     padding: 1px 6px;
     font-family: inherit;
-    font-size: 0.5625rem;
+    font-size: var(--text-sm);
     cursor: pointer;
     transition: all 0.12s;
   }
   .quick-toggle-btn:hover {
-    color: #F0F6FC;
-    border-color: #14B8A6;
+    color: var(--color-on-surface);
+    border-color: var(--color-secondary);
   }
 </style>
