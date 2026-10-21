@@ -336,7 +336,7 @@
     animation: beam 2.2s ease-in-out infinite;
   }
   .stream {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-height: 80px;
     overflow: auto;
     border: 1px solid var(--color-outline-variant);
