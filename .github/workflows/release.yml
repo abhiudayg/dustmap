@@ -75,9 +75,19 @@ jobs:
       - name: Build and sign DustMap.app (Tauri)
         timeout-minutes: 75
         working-directory: app
-        env:
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
         run: bun run tauri build --bundles app
+
+      - name: Sign DustMap.app
+        timeout-minutes: 15
+        shell: bash
+        env:
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+        run: |
+          set -euo pipefail
+          APP="target/release/bundle/macos/DustMap.app"
+          security find-identity -v -p codesigning
+          codesign --force --options runtime --timestamp --sign "$APPLE_IDENTITY" --verbose=2 "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
 
       - name: Notarize and staple DustMap.app
         timeout-minutes: 40
