@@ -853,7 +853,7 @@ checksum = "92773504d58c093f6de2459af4af33faa518c13451eb8f2b5698ed3d36e7c813"
 
 [[package]]
 name = "dustmap-app"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -870,7 +870,7 @@ dependencies = [
 
 [[package]]
 name = "dustmap-cli"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -884,7 +884,7 @@ dependencies = [
 
 [[package]]
 name = "dustmap-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -903,7 +903,7 @@ dependencies = [
 
 [[package]]
 name = "dustmap-rules"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "anyhow",
  "dustmap-core",

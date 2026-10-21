@@ -5,10 +5,22 @@ All notable changes to DustMap will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.1] - 2026-10-21
 
 ### Added
 - Permanent deletion from the delete dialog. It is opt-in per item, requires a confirmation checkbox, and is written to the audit log as `deleted_permanently`.
+- Batch delete from the Top Space Consumers list: select rows (or all visible rows), then review and delete them in the Confirm Deletion dialog. Failed items stay selected and are reported with their reasons.
+- Empty folder contents: removes everything inside a folder while keeping the folder, for folders that cannot be deleted themselves.
+
+### Changed
+- The path stream in the scan view is a scrolling box that takes the remaining space, and keeps the last 200 paths with the newest at the bottom.
+- The Cancel scan button shows "Cancelling…" as soon as it is clicked.
+- The menu bar, splash screen, and exported report read the version from `package.json`.
+
+### Fixed
+- Cancelling a scan no longer saves the partial result to the scan cache, which made cancelling slow on large scans.
+- Purging a Cache & Logs entry removes it from the list and from its real parent folder.
+- The scan view fits short windows; the header, radar, and cards keep their sizes.
 
 ## [1.0.0] - 2026-10-21
 
