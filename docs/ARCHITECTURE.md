@@ -1,6 +1,6 @@
 # 🏛️ DustMap Architecture & Technical Specification
 
-> **Version:** 0.1.0  
+> **Version:** 1.0.0  
 > **Target OS:** macOS 13+ (Ventura, Sonoma, Sequoia) — Apple Silicon & Intel  
 > **Security Policy:** Zero Data Loss, Trash-First, Offline-Only, No Telemetry  
 
@@ -142,7 +142,7 @@ DustMap includes a 23-point verification suite executed via `.verify/run.sh`:
 - Production binaries and `.app` bundles are code-signed with hardened runtime and entitlements:
   - **Identity:** `Developer ID Application: Abhiuday Gupta (9HSMVVUMVX)`
   - **Entitlements:** Full Disk Access (`entitlements.plist`)
-  - **Distribution:** Compressed Universal/ARM64 Disk Image (`DustMap_0.1.0_aarch64.dmg`) with background presentation and Applications symlink.
+  - **Distribution:** Compressed Universal/ARM64 Disk Image (`DustMap_1.0.0_aarch64.dmg`) with background presentation and Applications symlink.
 
 ## 6. Implementation Status (PRD v3.1)
 
