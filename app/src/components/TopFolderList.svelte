@@ -142,6 +142,19 @@
     return list.slice(0, 30);
   });
 
+  const allSelected = $derived(sorted.length > 0 && sorted.every((entry) => !!selected[getEntryFullPath(entry)]));
+
+  function toggleAll() {
+    if (allSelected) {
+      const visible = new Set(sorted.map((entry) => getEntryFullPath(entry)));
+      selected = Object.fromEntries(Object.entries(selected).filter(([path]) => !visible.has(path)));
+    } else {
+      selected = { ...selected, ...Object.fromEntries(sorted.map((entry) => [getEntryFullPath(entry), entry])) };
+    }
+    pending = null;
+    understood = false;
+  }
+
   const maxSize = $derived.by(() => {
     return sorted[0] ? getEntrySize(sorted[0]) : 1;
   });
@@ -182,7 +195,16 @@
 
   <!-- High-Density High-Precision Table Header (24px) -->
   <div class="table-header font-mono">
-    <div class="col-name">PATH / ITEM</div>
+    <div class="col-name">
+      <input
+        type="checkbox"
+        class="batch-check"
+        checked={allSelected}
+        onchange={toggleAll}
+        aria-label="Select all visible items"
+      />
+      PATH / ITEM
+    </div>
     <div class="col-size">SIZE</div>
     <div class="col-actions">ACTION</div>
   </div>
