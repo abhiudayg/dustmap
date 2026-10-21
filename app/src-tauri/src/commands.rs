@@ -113,10 +113,12 @@ pub async fn start_scan(
     state.lock().map_err(|e| e.to_string())?.active_cancel = None;
     let result = outcome?;
     let cache_dir = state_dir.join("scan-cache");
-    if let Err(err) =
-        dustmap_core::scan_cache::save(&cache_dir, &result, chrono::Utc::now().timestamp())
-    {
-        eprintln!("scan cache was not saved: {err:#}");
+    if !result.cancelled {
+        if let Err(err) =
+            dustmap_core::scan_cache::save(&cache_dir, &result, chrono::Utc::now().timestamp())
+        {
+            eprintln!("scan cache was not saved: {err:#}");
+        }
     }
     data::mark_scan_finished(&state_dir).map_err(|e| e.to_string())?;
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { appState, selectVolume, rescanCurrentVolume, loadVolumes, exportReport, startCurrentVolumeScan, fetchCacheEntries } from '../lib/store.svelte';
   import { formatBytes, usagePercent } from '../lib/format';
+  import { APP_VERSION } from '../lib/version';
   import { onMount } from 'svelte';
 
   let searchInput: HTMLInputElement;
@@ -66,7 +67,7 @@
         <span class="beacon-dot"></span>
       </div>
       <span class="brand-name">DustMap</span>
-      <span class="brand-ver">v0.1.0</span>
+      <span class="brand-ver">v{APP_VERSION}</span>
     </div>
 
     <div class="header-divider"></div>

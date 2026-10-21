@@ -1,18 +1,47 @@
 <script lang="ts">
-  import { appState, clearDeleteTarget, performClear, performDelete, getEntrySize } from '../lib/store.svelte';
+  import { appState, clearDeleteTarget, performBatchDelete, performClear, performDelete, getEntrySize } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
 
   let understood = $state(false);
   let deleting = $state(false);
   let error = $state<string | null>(null);
 
+  const single = $derived(appState.deleteTarget);
+  const batchItems = $derived(Object.entries(appState.selection));
+  const batch = $derived(appState.batchDeleteOpen && batchItems.length > 0);
+  const batchBytes = $derived(batchItems.reduce((sum, [, entry]) => sum + getEntrySize(entry), 0));
+  const open = $derived(batch || single !== null);
+  const size = $derived(batch ? batchBytes : single ? getEntrySize(single.entry) : 0);
+
+  function closeDialog() {
+    appState.batchDeleteOpen = false;
+    clearDeleteTarget();
+    understood = false;
+    error = null;
+  }
+
   async function doDelete(permanent: boolean) {
-    if (!appState.deleteTarget) return;
     if (permanent && !understood) return;
     deleting = true;
     error = null;
     try {
-      await performDelete(appState.deleteTarget.path, permanent, appState.deleteTarget.entry.id);
+      if (batch) {
+        const results = await performBatchDelete(
+          batchItems.map(([path, entry]) => ({ path, entryId: entry.id })),
+          permanent,
+        );
+        const failed = results.filter((result) => !result.success);
+        if (failed.length > 0) {
+          error = `Removed ${results.length - failed.length} of ${results.length}. Could not remove: ${failed
+            .map((result) => `${result.path} (${result.error ?? 'unknown error'})`)
+            .join('; ')}`;
+        } else {
+          closeDialog();
+        }
+        return;
+      }
+      if (!single) return;
+      await performDelete(single.path, permanent, single.entry.id);
     } catch (e: unknown) {
       error = e instanceof Error ? e.message : String(e);
       // Keep modal open so error is fully visible to the user!
@@ -22,12 +51,12 @@
   }
 
   async function doClear(permanent: boolean) {
-    if (!appState.deleteTarget) return;
+    if (!single) return;
     if (permanent && !understood) return;
     deleting = true;
     error = null;
     try {
-      const result = await performClear(appState.deleteTarget.path, permanent, appState.deleteTarget.entry.id);
+      const result = await performClear(single.path, permanent, single.entry.id);
       if (result.failed.length > 0) {
         error = `Removed ${result.removed} item(s). Could not remove: ${result.failed.join('; ')}`;
       } else {
@@ -42,17 +71,15 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape' && !deleting) {
-      clearDeleteTarget();
+      closeDialog();
     }
   }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-{#if appState.deleteTarget}
-  {@const target = appState.deleteTarget}
-  {@const size = getEntrySize(target.entry)}
-  <div class="modal-backdrop" onclick={clearDeleteTarget} role="presentation">
+{#if open}
+  <div class="modal-backdrop" onclick={closeDialog} role="presentation">
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="modal-card"
@@ -65,7 +92,7 @@
     >
       <!-- Technical Corner Metadata Labels -->
       <div class="corner-tag left">+ SEC_OPS_L3 +</div>
-      <div class="corner-tag right">INODE #{target.entry.id} // APFS</div>
+      <div class="corner-tag right">{batch ? `${batchItems.length} ITEMS // APFS` : `INODE #${single?.entry.id} // APFS`}</div>
       <div class="ambient-glow"></div>
 
       <!-- Modal Header -->
@@ -80,7 +107,7 @@
             <p class="header-subtitle">Surgical disk reclaim protocol triggered</p>
           </div>
         </div>
-        <button class="esc-close-btn" onclick={clearDeleteTarget} disabled={deleting} title="Close (Esc)">
+        <button class="esc-close-btn" onclick={closeDialog} disabled={deleting} title="Close (Esc)">
           <span>esc</span>
           <span class="close-x">✕</span>
         </button>
@@ -92,16 +119,27 @@
           <span class="target-label">Target Path</span>
           <span class="resolved-tag">
             <span class="resolved-dot"></span>
-            {target.entry.kind === 'Directory' ? 'RESOLVED DIRECTORY' : 'RESOLVED FILE'}
+            {batch ? 'RESOLVED SELECTION' : single?.entry.kind === 'Directory' ? 'RESOLVED DIRECTORY' : 'RESOLVED FILE'}
           </span>
         </div>
-        <div class="path-display">
-          <span class="path-icon">{target.entry.kind === 'Directory' ? '📁' : '📄'}</span>
-          <span class="path-text">{target.path}</span>
-        </div>
+        {#if batch}
+          <div class="target-list" role="list">
+            {#each batchItems as [path, entry] (path)}
+              <div class="target-row" role="listitem">
+                <span class="target-path">{path}</span>
+                <span class="target-size">{formatBytes(getEntrySize(entry), appState.useBinaryUnits)}</span>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <div class="path-display">
+            <span class="path-icon">{single?.entry.kind === 'Directory' ? '📁' : '📄'}</span>
+            <span class="path-text">{single?.path}</span>
+          </div>
+        {/if}
         <div class="target-meta">
           <span>APFS Native • Read/Write</span>
-          <span>{target.entry.coverage} Coverage</span>
+          {#if single}<span>{single.entry.coverage} Coverage</span>{/if}
         </div>
       </div>
 
@@ -117,22 +155,24 @@
         </div>
 
         <!-- Telemetry Chips Grid -->
+        {#if single}
         <div class="chips-stack">
           <div class="telemetry-chip">
             <span class="chip-label">Type</span>
-            <span class="chip-value">{target.entry.kind}</span>
+            <span class="chip-value">{single?.entry.kind}</span>
           </div>
-          {#if target.entry.child_count !== undefined}
+          {#if single?.entry.child_count !== undefined}
             <div class="telemetry-chip">
               <span class="chip-label">Child Items</span>
-              <span class="chip-value highlight">{target.entry.child_count.toLocaleString()} items</span>
+              <span class="chip-value highlight">{single?.entry.child_count.toLocaleString()} items</span>
             </div>
           {/if}
           <div class="telemetry-chip">
             <span class="chip-label">Hidden Item</span>
-            <span class="chip-value">{target.entry.is_hidden ? 'Yes (Hidden)' : 'No'}</span>
+            <span class="chip-value">{single?.entry.is_hidden ? 'Yes (Hidden)' : 'No'}</span>
           </div>
         </div>
+        {/if}
       </div>
 
       <!-- Critical Warning / Failure Callout Box -->
@@ -188,7 +228,7 @@
         </button>
       </div>
 
-      {#if target.entry.kind === 'Directory'}
+      {#if single?.entry.kind === 'Directory'}
         <button class="btn-trash" onclick={() => doClear(false)} disabled={deleting}>
           <span>{deleting ? 'Emptying…' : 'Empty folder contents (keep the folder)'}</span>
         </button>
@@ -196,7 +236,7 @@
 
       <!-- Secondary Footer Cancel Button -->
       <div class="cancel-footer">
-        <button class="btn-cancel-keep" onclick={clearDeleteTarget} disabled={deleting}>
+        <button class="btn-cancel-keep" onclick={closeDialog} disabled={deleting}>
           <span>Cancel (Keep Files)</span>
           <kbd class="kbd-esc">Esc</kbd>
         </button>
@@ -620,5 +660,29 @@
   .path-text {
     word-break: break-all;
     white-space: normal;
+  }
+.target-list {
+    min-height: 0;
+    max-height: 9rem;
+    overflow-y: auto;
+    border: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.4 * 100%), transparent);
+    border-radius: 6px;
+    background: var(--color-surface-container-lowest);
+  }
+  .target-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-outline-variant) calc(0.3 * 100%), transparent);
+    font-size: var(--text-base);
+  }
+  .target-path {
+    min-width: 0;
+    word-break: break-all;
+  }
+  .target-size {
+    flex-shrink: 0;
+    color: var(--color-on-surface-variant);
   }
 </style>

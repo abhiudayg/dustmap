@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { appState } from '../lib/store.svelte';
+  import { APP_VERSION } from '../lib/version';
 
   let step = $state(0);
   let progressPct = $state(35);
@@ -106,7 +107,7 @@
     <div class="brand-group">
       <div class="brand-title-row">
         <h1 class="brand-title">DustMap</h1>
-        <span class="version-badge">v0.1.0</span>
+        <span class="version-badge">v{APP_VERSION}</span>
       </div>
       <p class="brand-subtitle">High-Precision macOS Storage Telemetry</p>
     </div>

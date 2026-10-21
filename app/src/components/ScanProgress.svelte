@@ -3,7 +3,23 @@
   import { appState, cancelCurrentScan } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
 
+  let cancelling = $state(false);
+
+  function requestCancel() {
+    cancelling = true;
+    cancelCurrentScan();
+  }
+
+  let hud = $state<HTMLElement | undefined>();
+  let stream = $state<HTMLElement | undefined>();
+
+  $effect(() => {
+    void appState.recentPaths.length;
+    if (stream) stream.scrollTop = stream.scrollHeight;
+  });
+
   onMount(() => {
+    if (hud) hud.scrollTop = 0;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') cancelCurrentScan();
     };
@@ -27,7 +43,7 @@
   }
 </script>
 
-<section class="hud" aria-live="polite" aria-label="Scan progress">
+<section class="hud" bind:this={hud} aria-live="polite" aria-label="Scan progress">
   <header class="hud-top">
     <div class="target">
       <span class="pulse" aria-hidden="true"></span>
@@ -90,9 +106,9 @@
     <div class="track"><div class="beam"></div></div>
   </div>
 
-  <div class="stream" role="log" aria-label="Recent paths">
+  <div class="stream" bind:this={stream} role="log" aria-label="Recent paths">
     <div class="stream-title">Real-time path stream</div>
-    {#each appState.recentPaths as path (path)}
+    {#each appState.recentPaths as path, i (i)}
       <div class="stream-row">{path}</div>
     {:else}
       <div class="stream-row muted">Waiting for entries…</div>
@@ -101,7 +117,7 @@
 
   <footer class="hud-bottom">
     <span class="muted">Scan runs read-only. Nothing is deleted while scanning.</span>
-    <button class="cancel" onclick={() => cancelCurrentScan()}>Cancel scan <span class="kbd">ESC</span></button>
+    <button class="cancel" disabled={cancelling} onclick={requestCancel}>{cancelling ? 'Cancelling…' : 'Cancel scan'} <span class="kbd">ESC</span></button>
   </footer>
 </section>
 
@@ -113,7 +129,7 @@
     padding: 14px 16px;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;
     color: var(--color-on-surface);
     background: var(--color-surface);
     font-size: var(--text-base);
@@ -337,8 +353,8 @@
   }
   .stream {
     flex: 1 1 0;
-    min-height: 80px;
-    overflow: auto;
+    min-height: 0;
+    overflow-y: auto;
     border: 1px solid var(--color-outline-variant);
     border-radius: 8px;
     background: var(--color-surface-container-lowest);

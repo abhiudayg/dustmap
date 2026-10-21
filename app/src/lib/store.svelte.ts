@@ -1,3 +1,4 @@
+import { APP_VERSION } from './version';
 import type { VolumeInfo, IpcEntry, IpcScanSummary, ScanProgressInfo, CachedScanInfo } from './types';
 import { listVolumes, startScan, scanSummary, listChildren, listCacheEntries, revealInFinder, saveReportFile, deletePath as invokeDelete, clearFolderContents as invokeClear, deletePaths as invokeDeleteMany, cancelScan, loadCachedScan } from './invoke';
 
@@ -207,7 +208,7 @@ export async function exportReport() {
 
   const report = {
     app: 'DustMap',
-    version: '0.1.0',
+    version: APP_VERSION,
     exported_at: new Date().toISOString(),
     active_volume: {
       name: vol?.name ?? 'Macintosh HD',
@@ -373,12 +374,12 @@ async function refreshAfterChange() {
   }
 }
 
-const RECENT_PATH_LIMIT = 6;
+const RECENT_PATH_LIMIT = 200;
 
 export function recordScanProgress(progress: ScanProgressInfo) {
   appState.scanProgress = progress;
-  if (progress.current_path && appState.recentPaths[0] !== progress.current_path) {
-    appState.recentPaths = [progress.current_path, ...appState.recentPaths].slice(0, RECENT_PATH_LIMIT);
+  if (progress.current_path && appState.recentPaths.at(-1) !== progress.current_path) {
+    appState.recentPaths = [...appState.recentPaths, progress.current_path].slice(-RECENT_PATH_LIMIT);
   }
 }
 
