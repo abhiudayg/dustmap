@@ -140,7 +140,7 @@ DustMap includes a 23-point verification suite executed via `.verify/run.sh`:
 ## 5. macOS Codesigning & Distribution
 
 - Production binaries and `.app` bundles are code-signed with hardened runtime and entitlements:
-  - **Identity:** `Developer ID Application: Abhiuday Gupta (9HSMVVUMVX)`
+  - **Identity:** `Developer ID Application: <your name> (<team id>)`, supplied through `APPLE_IDENTITY`
   - **Entitlements:** `entitlements.plist`. Full Disk Access is optional and granted by the user in System Settings (a TCC permission), not declared as an entitlement.
   - **Distribution:** Compressed Universal/ARM64 Disk Image (`DustMap_1.0.0_aarch64.dmg`) with background presentation and Applications symlink.
 

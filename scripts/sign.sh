@@ -2,7 +2,7 @@
 # Signs DustMap binaries or app bundle using Developer ID Application
 set -euo pipefail
 
-IDENTITY="Developer ID Application: Abhiuday Gupta (9HSMVVUMVX)"
+IDENTITY="${APPLE_IDENTITY:?Set APPLE_IDENTITY to your Developer ID Application identity}"
 ENTITLEMENTS="app/src-tauri/entitlements.plist"
 
 if [[ $# -lt 1 ]]; then
