@@ -612,4 +612,13 @@
     border-radius: 3px;
     font-size: var(--text-sm);
   }
+.path-display {
+    max-height: 6.5rem;
+    overflow-y: auto;
+    align-items: flex-start;
+  }
+  .path-text {
+    word-break: break-all;
+    white-space: normal;
+  }
 </style>

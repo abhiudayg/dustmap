@@ -29,6 +29,8 @@ export const appState = $state({
   scanError: null as string | null,
   scanCachedAt: null as number | null,
   deleteTarget: null as { path: string; entry: IpcEntry } | null,
+  selection: {} as Record<string, IpcEntry>,
+  batchDeleteOpen: false,
   sortKey: 'size' as 'name' | 'size' | 'modified',
   sortDir: 'desc' as 'asc' | 'desc',
   metric: 'allocated' as 'allocated' | 'logical',
@@ -386,6 +388,8 @@ export async function cancelCurrentScan() {
 
 export async function performBatchDelete(items: { path: string; entryId?: number }[], permanent: boolean) {
   const results = await invokeDeleteMany(items, permanent, appState.scanId);
+  const removed = new Set(results.filter((result) => result.success).map((result) => result.path));
+  appState.selection = Object.fromEntries(Object.entries(appState.selection).filter(([path]) => !removed.has(path)));
   await refreshAfterChange();
   return results;
 }

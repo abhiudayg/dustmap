@@ -5,6 +5,7 @@
   import Treemap from './components/Treemap.svelte';
   import TopFolderList from './components/TopFolderList.svelte';
   import DeleteModal from './components/DeleteModal.svelte';
+  import BatchDeleteModal from './components/BatchDeleteModal.svelte';
   import ScanProgress from './components/ScanProgress.svelte';
   import StatusBar from './components/StatusBar.svelte';
   import PermissionModal from './components/PermissionModal.svelte';
@@ -69,6 +70,7 @@
 
   <StatusBar />
   <DeleteModal />
+  <BatchDeleteModal />
   <PermissionModal />
 
   {#if appState.toastMessage}
