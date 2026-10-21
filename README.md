@@ -17,10 +17,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/00-hero-overview.png" width="800" alt="DustMap overview: disk usage donut and Top Space Consumers" />
+  <img src="docs/screenshots/00-hero-overview.png" width="800" alt="DustMap macOS disk space analyzer: storage breakdown donut and largest folders" />
 </p>
 
-DustMap is a free, open-source macOS storage tool built for engineers, power users, and anyone with mysterious "System Data" filling their disk. Built with Rust and Tauri 2, it scans millions of filesystem entries in seconds, renders interactive sector donuts and squarified sector maps, and provides an explainable, safe, Trash-first cleaner.
+DustMap is a free, open-source macOS disk space analyzer and Mac storage cleaner built for engineers, power users, and anyone with mysterious "System Data" filling their disk. Built with Rust and Tauri 2, it scans millions of filesystem entries in seconds, renders interactive sector donuts and squarified sector maps, and provides an explainable, safe, Trash-first cleaner.
 
 ---
 
