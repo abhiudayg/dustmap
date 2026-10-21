@@ -1,5 +1,5 @@
 import type { VolumeInfo, IpcEntry, IpcScanSummary, ScanProgressInfo, CachedScanInfo } from './types';
-import { listVolumes, startScan, scanSummary, listChildren, listCacheEntries, revealInFinder, saveReportFile, deletePath as invokeDelete, clearFolderContents as invokeClear, cancelScan, loadCachedScan } from './invoke';
+import { listVolumes, startScan, scanSummary, listChildren, listCacheEntries, revealInFinder, saveReportFile, deletePath as invokeDelete, clearFolderContents as invokeClear, deletePaths as invokeDeleteMany, cancelScan, loadCachedScan } from './invoke';
 
 export interface BreadcrumbItem {
   id: number;
@@ -382,4 +382,10 @@ export function recordScanProgress(progress: ScanProgressInfo) {
 
 export async function cancelCurrentScan() {
   await cancelScan();
+}
+
+export async function performBatchDelete(items: { path: string; entryId?: number }[], permanent: boolean) {
+  const results = await invokeDeleteMany(items, permanent, appState.scanId);
+  await refreshAfterChange();
+  return results;
 }

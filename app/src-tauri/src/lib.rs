@@ -29,6 +29,7 @@ pub fn run() {
             commands::reveal_in_finder,
             commands::delete_path,
             commands::clear_folder_contents,
+            commands::delete_paths,
             commands::save_report_file,
             commands::startup_report,
             commands::cancel_scan,

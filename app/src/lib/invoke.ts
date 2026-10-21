@@ -100,3 +100,15 @@ export async function dismissInterruptedScan(): Promise<void> {
 export async function loadCachedScan(path: string): Promise<CachedScanInfo | null> {
   return invoke<CachedScanInfo | null>('load_cached_scan', { path });
 }
+
+export async function deletePaths(
+  items: { path: string; entryId?: number | null }[],
+  permanent: boolean,
+  scanId?: string | null,
+): Promise<IpcDeleteResult[]> {
+  return invoke<IpcDeleteResult[]>('delete_paths', {
+    items: items.map((item) => ({ path: item.path, entryId: item.entryId ?? null })),
+    permanent,
+    scanId: scanId ?? null,
+  });
+}

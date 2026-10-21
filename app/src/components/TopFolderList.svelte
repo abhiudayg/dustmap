@@ -1,9 +1,69 @@
 <script lang="ts">
-  import { appState, navigateTo, setDeleteTarget, getEntrySize, revealPath, fetchCacheEntries } from '../lib/store.svelte';
+  import { appState, navigateTo, setDeleteTarget, getEntrySize, revealPath, fetchCacheEntries, performBatchDelete } from '../lib/store.svelte';
   import { formatBytes } from '../lib/format';
   import type { IpcEntry } from '../lib/types';
 
   let sortAsc = $state(false);
+  let selected = $state<Record<string, IpcEntry>>({});
+  let pending = $state<'trash' | 'forever' | null>(null);
+  let understood = $state(false);
+  let busy = $state(false);
+  let batchError = $state<string | null>(null);
+
+  const selectedList = $derived(Object.entries(selected));
+  const selectedBytes = $derived(selectedList.reduce((sum, [, entry]) => sum + getEntrySize(entry), 0));
+
+  function toggleSelect(path: string, entry: IpcEntry) {
+    if (selected[path]) {
+      const { [path]: _removed, ...rest } = selected;
+      selected = rest;
+    } else {
+      selected = { ...selected, [path]: entry };
+    }
+    pending = null;
+    understood = false;
+  }
+
+  function clearSelection() {
+    selected = {};
+    pending = null;
+    understood = false;
+    batchError = null;
+  }
+
+  async function runBatch(permanent: boolean) {
+    busy = true;
+    batchError = null;
+    try {
+      const items = selectedList.map(([path, entry]) => ({ path, entryId: entry.id }));
+      const results = await performBatchDelete(items, permanent);
+      const failed = results.filter((result) => !result.success);
+      const failedPaths = new Set(failed.map((result) => result.path));
+      selected = Object.fromEntries(Object.entries(selected).filter(([path]) => failedPaths.has(path)));
+      if (failed.length > 0) {
+        batchError = `Could not remove ${failed.length} item(s): ${failed.map((result) => `${result.path} (${result.error ?? 'unknown error'})`).join('; ')}`;
+      }
+    } catch (e: unknown) {
+      batchError = e instanceof Error ? e.message : String(e);
+    } finally {
+      busy = false;
+      pending = null;
+      understood = false;
+    }
+  }
+
+  function requestBatch(permanent: boolean) {
+    if (permanent && pending !== 'forever') {
+      pending = 'forever';
+      return;
+    }
+    if (!permanent && pending !== 'trash') {
+      pending = 'trash';
+      return;
+    }
+    if (permanent && !understood) return;
+    runBatch(permanent);
+  }
 
   // Automatically fetch disk-wide cache entries if user switches to cache filter
   $effect(() => {
@@ -127,6 +187,34 @@
     <div class="col-actions">ACTION</div>
   </div>
 
+  {#if selectedList.length > 0}
+    <div class="batch-bar font-mono">
+      <span>{selectedList.length} selected · {formatBytes(selectedBytes, appState.useBinaryUnits)}</span>
+      <span class="batch-spacer"></span>
+      {#if pending === 'forever'}
+        <label class="batch-confirm">
+          <input type="checkbox" bind:checked={understood} />
+          <span>Cannot be undone</span>
+        </label>
+      {/if}
+      <button class="batch-btn" onclick={clearSelection} disabled={busy}>Clear</button>
+      <button class="batch-btn" onclick={() => requestBatch(false)} disabled={busy}>
+        {pending === 'trash' ? `Confirm: move ${selectedList.length} to Trash` : 'Move to Trash'}
+      </button>
+      <button
+        class="batch-btn danger"
+        onclick={() => requestBatch(true)}
+        disabled={busy || (pending === 'forever' && !understood)}
+      >
+        {pending === 'forever' ? `Confirm: delete ${selectedList.length} forever` : 'Delete forever'}
+      </button>
+    </div>
+  {/if}
+
+  {#if batchError}
+    <div class="batch-error">{batchError}</div>
+  {/if}
+
   <!-- Scrollable High-Density Table View (Rows matching Stitch Screen 1) -->
   <div class="table-body">
     {#if sorted.length === 0}
@@ -157,6 +245,14 @@
         >
           <!-- Left: Icon Box + Name + Badge + Truncated Path -->
           <div class="col-name cell-meta">
+            <input
+              type="checkbox"
+              class="batch-check"
+              checked={!!selected[fullPath]}
+              onclick={(e) => e.stopPropagation()}
+              onchange={() => toggleSelect(fullPath, entry)}
+              aria-label={`Select ${entry.name}`}
+            />
             <div class="icon-box" style="border-color: {meta.color}40; background: {meta.color}15">
               <span class="material-symbols-outlined row-glyph" style="color: {meta.color}">
                 {meta.icon}
@@ -544,5 +640,48 @@
   }
   .footer-cta:hover {
     text-decoration: underline;
+  }
+  .batch-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-outline-variant);
+    background: var(--color-surface-container-high);
+    font-size: var(--text-base);
+  }
+  .batch-spacer {
+    flex: 1;
+  }
+  .batch-confirm {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .batch-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--color-outline-variant);
+    border-radius: 6px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .batch-btn.danger {
+    border-color: var(--color-error);
+    color: var(--color-error);
+  }
+  .batch-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .batch-error {
+    padding: 6px 12px;
+    color: var(--color-error);
+    font-size: var(--text-sm);
+  }
+  .batch-check {
+    margin: 0 8px 0 0;
+    flex-shrink: 0;
   }
 </style>

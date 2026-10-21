@@ -513,3 +513,36 @@ pub fn load_cached_scan(
         scanned_at_secs: cached.scanned_at_secs,
     }))
 }
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeleteItem {
+    pub path: String,
+    pub entry_id: Option<u32>,
+}
+
+#[tauri::command]
+pub async fn delete_paths(
+    items: Vec<DeleteItem>,
+    permanent: bool,
+    scan_id: Option<String>,
+    state: State<'_, SharedScanStore>,
+) -> Result<Vec<IpcDeleteResult>, String> {
+    let home = home_dir()?;
+    let mut results = Vec::with_capacity(items.len());
+    for item in items {
+        let result =
+            delete_one(&item.path, permanent, scan_id.as_deref(), &home).unwrap_or_else(|err| {
+                IpcDeleteResult {
+                    path: item.path.clone(),
+                    success: false,
+                    error: Some(err),
+                }
+            });
+        if let (true, Some(sid), Some(eid)) = (result.success, scan_id.as_deref(), item.entry_id) {
+            forget_entry(&state, sid, eid);
+        }
+        results.push(result);
+    }
+    Ok(results)
+}
