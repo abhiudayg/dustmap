@@ -77,6 +77,21 @@ jobs:
         working-directory: app
         run: bun run tauri build --bundles app
 
+      - name: Diagnose timestamp server and codesign
+        timeout-minutes: 8
+        shell: bash
+        env:
+          APPLE_IDENTITY: ${{ secrets.APPLE_IDENTITY }}
+        run: |
+          echo "== timestamp server reachability"
+          curl -sS -m 20 -o /dev/null -w 'HTTP %{http_code} in %{time_total}s\n' http://timestamp.apple.com/ts01 || echo "timestamp.apple.com unreachable (curl exit $?)"
+          cp /usr/bin/true "$RUNNER_TEMP/sign-test-ts"
+          echo "== codesign with --timestamp (120s cap)"
+          perl -e 'alarm 120; exec @ARGV or die "exec: $!"' codesign --force --options runtime --timestamp --sign "$APPLE_IDENTITY" "$RUNNER_TEMP/sign-test-ts"; echo "exit $?"
+          cp /usr/bin/true "$RUNNER_TEMP/sign-test-nots"
+          echo "== codesign without --timestamp (120s cap)"
+          perl -e 'alarm 120; exec @ARGV or die "exec: $!"' codesign --force --options runtime --sign "$APPLE_IDENTITY" "$RUNNER_TEMP/sign-test-nots"; echo "exit $?"
+
       - name: Sign DustMap.app
         timeout-minutes: 15
         shell: bash
@@ -166,6 +181,7 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
           files: release-assets/*
