@@ -16,7 +16,6 @@ pub struct Settings {
     pub old_download_age_days: u32,
     pub xcode_archive_age_days: u32,
     pub terminal_app: Option<String>,
-    pub telemetry_enabled: bool,
     pub log_verbose: bool,
     pub user_exclusions: Vec<String>,
 }
@@ -30,7 +29,6 @@ impl Default for Settings {
             old_download_age_days: 180,
             xcode_archive_age_days: 90,
             terminal_app: None,
-            telemetry_enabled: false,
             log_verbose: false,
             user_exclusions: Vec::new(),
         }

@@ -69,7 +69,7 @@ The foundational library containing zero frontend dependencies.
 - **Trash-First Execution:** Directs all cleanup actions to macOS native Trash via `trash::delete`, allowing full recovery until the user empties Trash. Permanent deletion requires explicit confirmation and bypass checkboxes.
 
 #### E. Structured Append-Only Audit Logger (`audit.rs`)
-- Every deletion and cleanup action is appended to a local JSON-lines log (`~/.dustmap/audit.jsonl`).
+- Every deletion and cleanup action is appended to a local JSON-lines log (`~/Library/Application Support/com.dustmap.desktop/audit.jsonl`).
 - Records timestamp, target path, reclaimed bytes, operator decision (`MovedToTrash` vs `DeletedPermanently`), and outcome.
 
 ---
@@ -141,7 +141,7 @@ DustMap includes a 23-point verification suite executed via `.verify/run.sh`:
 
 - Production binaries and `.app` bundles are code-signed with hardened runtime and entitlements:
   - **Identity:** `Developer ID Application: Abhiuday Gupta (9HSMVVUMVX)`
-  - **Entitlements:** Full Disk Access (`entitlements.plist`)
+  - **Entitlements:** `entitlements.plist`. Full Disk Access is optional and granted by the user in System Settings (a TCC permission), not declared as an entitlement.
   - **Distribution:** Compressed Universal/ARM64 Disk Image (`DustMap_1.0.0_aarch64.dmg`) with background presentation and Applications symlink.
 
 ## 6. Implementation Status (PRD v3.1)
