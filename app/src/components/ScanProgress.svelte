@@ -151,8 +151,7 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    min-height: 0;
-    flex-shrink: 1;
+    flex-shrink: 0;
   }
   .sector-pill {
     display: flex;
@@ -338,7 +337,7 @@
   }
   .stream {
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 80px;
     overflow: auto;
     border: 1px solid var(--color-outline-variant);
     border-radius: 8px;
